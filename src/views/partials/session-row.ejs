@@ -1,0 +1,12 @@
+<div class="session-row">
+  <span class="bar" style="background: <%= s.task ? s.task.color : '#cbd5e1' %>"></span>
+  <div class="meta">
+    <div class="title">
+      <%= s.description || '(no description)' %><% if (s.task) { %> · <span class="task"><%= s.task.name %></span><% } %>
+    </div>
+    <div class="tags">
+      <% s.tags.forEach(t => { %><span class="tag" style="background: <%= t.color %>"><%= t.name %></span><% }) %>
+    </div>
+  </div>
+  <span class="dur"><%= fmtDuration(s.roundedMs) %></span>
+</div>

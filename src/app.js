@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { buildSessionMiddleware, requireAuth } from './auth.js';
 import { authRouter } from './routes/auth.js';
+import { trackingRouter } from './routes/tracking.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,8 +19,6 @@ export function createApp({ db, hub }) {
 
   app.get('/health', (req, res) => res.json({ ok: true }));
   app.use(authRouter(db));
-
-  // Placeholder home; replaced in Task 11.
-  app.get('/', requireAuth, (req, res) => res.send('home'));
+  app.use(requireAuth, trackingRouter(db, hub));
   return app;
 }

@@ -1,0 +1,18 @@
+<div id="active-timer" class="active-timer"
+     hx-get="/partials/active-timer" hx-trigger="tt:changed from:body" hx-swap="outerHTML">
+  <% if (state.running) { %>
+    <div class="running" x-data="clock(<%= state.since %>)">
+      <span class="dot"></span>
+      <span class="label"><%= state.session.description || 'Working…' %></span>
+      <span class="elapsed" x-text="text"></span>
+      <form method="post" action="/timer/pause" hx-post="/timer/pause" hx-target="#active-timer" hx-swap="outerHTML">
+        <button class="pause">Pause</button></form>
+      <form method="post" action="/timer/stop" hx-post="/timer/stop" hx-target="#active-timer" hx-swap="outerHTML">
+        <button class="stop">Stop</button></form>
+    </div>
+  <% } else { %>
+    <form method="post" action="/timer/start" hx-post="/timer/start" hx-target="#active-timer" hx-swap="outerHTML">
+      <button class="start">Start work</button>
+    </form>
+  <% } %>
+</div>

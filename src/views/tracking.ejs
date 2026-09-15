@@ -1,0 +1,7 @@
+<%
+  const active = include('partials/active-timer', { state, fmtDuration });
+  const list = include('partials/tracking-list', { groups, fmtDuration, fmtMoney });
+  const body = `${active}
+    <div id="tracking-list" hx-get="/partials/tracking-list" hx-trigger="tt:changed from:body" hx-swap="innerHTML">${list}</div>`;
+%>
+<%- include('layout', { title, nav, body }) %>
