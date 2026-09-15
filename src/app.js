@@ -1,6 +1,8 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { buildSessionMiddleware, requireAuth } from './auth.js';
+import { authRouter } from './routes/auth.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -10,8 +12,14 @@ export function createApp({ db, hub }) {
   app.set('views', path.join(dir, 'views'));
   app.use(express.urlencoded({ extended: false }));
   app.use(express.static(path.join(dir, '..', 'public')));
+  app.use(buildSessionMiddleware(db));
   app.locals.db = db;
   app.locals.hub = hub;
+
   app.get('/health', (req, res) => res.json({ ok: true }));
+  app.use(authRouter(db));
+
+  // Placeholder home; replaced in Task 11.
+  app.get('/', requireAuth, (req, res) => res.send('home'));
   return app;
 }

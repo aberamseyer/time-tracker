@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/vendor/htmx.min.js" defer></script>
+  <script src="/vendor/alpine.min.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <% if (typeof nav !== 'undefined' && nav) { %>
+  <nav class="topnav">
+    <a href="/" class="<%= nav==='tracking'?'active':'' %>">Time</a>
+    <a href="/tasks" class="<%= nav==='tasks'?'active':'' %>">Tasks</a>
+    <a href="/settings" class="<%= nav==='settings'?'active':'' %>">Settings</a>
+    <form method="post" action="/logout" class="logout"><button>Logout</button></form>
+  </nav>
+  <% } %>
+  <main><%- body %></main>
+</body>
+</html>
