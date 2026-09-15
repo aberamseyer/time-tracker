@@ -15,9 +15,24 @@ export function fmtMoney(cents) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+export function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function dayKey(ms) {
   const d = new Date(ms);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
+}
+
+function dayLabel(ms) {
+  return new Date(ms).toLocaleDateString('en-US', {
+    timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+  });
 }
 
 export function groupByDay(db, sessions, now, rounding) {
@@ -27,7 +42,7 @@ export function groupByDay(db, sessions, now, rounding) {
     const anchor = s.segments.length ? s.segments[0].start_utc : s.created_at;
     const key = dayKey(anchor);
     if (!groups.has(key)) {
-      groups.set(key, { key, anchor, label: new Date(anchor).toDateString(), sessions: [], totalMs: 0, totalCents: 0 });
+      groups.set(key, { key, anchor, label: dayLabel(anchor), sessions: [], totalMs: 0, totalCents: 0 });
     }
     const g = groups.get(key);
     g.sessions.push(d);
