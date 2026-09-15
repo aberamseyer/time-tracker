@@ -17,8 +17,9 @@ Log in from anywhere; timer state syncs live across tabs/devices via WebSockets.
 ## Non-Goals (v1)
 
 Deferred to future work (see end): CSV export, invoice/print-to-PDF, analytics
-charts, rounding, tag time/earning adjustments, focus/pomodoro, calendar sync,
-menu-bar/GPS/NFC/idle native features.
+charts, tag time/earning adjustments, focus/pomodoro
+
+Not intended: calendar sync, menu-bar/GPS/NFC/idle native device features.
 
 ## Stack
 
@@ -53,7 +54,7 @@ Times stored as UTC. Display timezone from `settings`.
 - `segment` — `id`, `session_id`, `start_utc`, `end_utc` (nullable).
 - `session_tag` — `(session_id, tag_id)` many-to-many.
 - `settings` — single row: business "FROM" block, `currency`, `week_start`,
-  `timezone`.
+  `timezone`, `rounding_minutes` (0 = off, else 15 / 30 / 60).
 
 ### Derived values
 
@@ -61,6 +62,10 @@ Times stored as UTC. Display timezone from `settings`.
 - Session earnings = duration × effective task rate
   (`task.hourly_rate_cents` else `client.default_rate_cents` else 0).
 - Session "in progress" iff it has an open segment (`end_utc IS NULL`).
+- When `rounding_minutes` > 0, each session's displayed duration is rounded to
+  the nearest interval, and earnings derive from the rounded duration. Raw
+  segment times are never mutated; rounding is presentation only. Running
+  sessions display unrounded.
 
 ## Timer State Machine
 
@@ -89,6 +94,9 @@ bypassing the live timer.
 
 ## Views (v1)
 
+Needs UX accessible for both mobile (big buttons, etc) but also desktop for 
+analytics and pdf exports.
+
 ### Time tracking
 
 - Sessions grouped collapsibly. Default grouping: day. Selector for
@@ -104,6 +112,11 @@ bypassing the live timer.
   times.
 - Filters: **unlabelled** (no description), **uncategorized** (no task),
   plus keyword / task / tag search.
+
+### Settings
+
+- Single settings page. v1 exposes one control: **rounding** — off / nearest
+  15 min / 30 min / 1 hr. Applied globally to displayed durations and earnings.
 
 ## Module Boundaries
 
@@ -132,16 +145,15 @@ bypassing the live timer.
 - `node:test` + `supertest`, each test against a temp SQLite file.
 - Unit: timer state machine (all transitions, single-open invariant),
   duration/earnings math (open segments, multi-segment sessions, rate
-  inheritance).
+  inheritance, rounding to 15/30/60 and off).
 - Routes: auth-gating, session/task/tag CRUD.
 
 ## Future Work
 
 - Export sessions to CSV (filtered).
-- Invoice: styled HTML page with client + line items + VAT + subtotal;
+- Invoice: styled HTML page with client + line items + subtotal;
   print-to-PDF in browser.
 - Analytics: line/bar charts by task/tag, working time vs earnings, date range.
-- Rounding: global and per-item (e.g. next 15 min).
+- Rounding: per-item override (global rounding ships in v1).
 - Tag adjustments: tags that modify time or earnings; standard hours/overtime.
 - Focus / pomodoro sessions.
-- Calendar import.
