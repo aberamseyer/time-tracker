@@ -43,6 +43,17 @@ test('decorate computes duration, rounded, earnings', () => {
   assert.equal(d.earningsCents, 3000);
 });
 
+test('decorate uses raw duration for running session', () => {
+  const db = openDb(':memory:');
+  const t = createTask(db, { name: 'Paid', hourlyRateCents: 6000 });
+  const id = createSession(db, { taskId: t, segments: [{ start: 0 }] });
+  const d = decorateSession(db, getSession(db, id), 23 * MIN, 15);
+  assert.equal(d.running, true);
+  assert.equal(d.durationMs, 23 * MIN);
+  assert.equal(d.roundedMs, d.durationMs);
+  assert.equal(d.earningsCents, Math.round((23 * MIN / 3600000) * 6000));
+});
+
 test('filters: unlabelled and uncategorized', () => {
   const db = openDb(':memory:');
   const t = createTask(db, { name: 'T' });
