@@ -1,0 +1,7 @@
+<div class="session-item">
+  <div hx-get="/sessions/<%= s.id %>/edit" hx-target="closest .session-item" hx-swap="outerHTML" class="clickable">
+    <span class="bar" style="background: <%= s.task ? s.task.color : '#cbd5e1' %>"></span>
+    <span class="title"><%= s.description || '(no description)' %><% if (s.task) { %> · <%= s.task.name %><% } %></span>
+    <span class="dur"><%= fmtDuration(s.roundedMs) %></span>
+  </div>
+</div>

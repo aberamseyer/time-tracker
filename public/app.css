@@ -1,0 +1,34 @@
+:root { --bg:#f7f8fa; --card:#fff; --line:#e5e7eb; --ink:#111827; --muted:#6b7280; --accent:#16a34a; }
+* { box-sizing: border-box; }
+body { margin:0; font:16px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+main { max-width: 720px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.6rem; margin: .5rem 0 1rem; }
+button { font: inherit; padding: .7rem 1rem; border:0; border-radius:10px; background:#e5e7eb; cursor:pointer; }
+button.start { background: var(--accent); color:#fff; width:100%; font-size:1.15rem; padding:1rem; }
+button.stop { background:#dc2626; color:#fff; }
+button.pause { background:#f59e0b; color:#fff; }
+button.danger { background:#dc2626; color:#fff; }
+input, select, textarea { font: inherit; padding:.6rem; border:1px solid var(--line); border-radius:8px; width:100%; }
+.topnav { display:flex; gap:.5rem; align-items:center; padding:.6rem 16px; background:var(--card); border-bottom:1px solid var(--line); }
+.topnav a { text-decoration:none; color:var(--muted); padding:.4rem .6rem; border-radius:8px; }
+.topnav a.active { color:var(--ink); background:#eef2ff; }
+.topnav .logout { margin-left:auto; }
+.active-timer { margin-bottom:1rem; }
+.active-timer .running { display:flex; align-items:center; gap:.6rem; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.8rem; }
+.active-timer .dot { width:10px; height:10px; border-radius:50%; background:var(--accent); }
+.active-timer .elapsed { margin-left:auto; font-variant-numeric: tabular-nums; font-weight:600; }
+.day-group { background:var(--card); border:1px solid var(--line); border-radius:12px; margin-bottom:.8rem; overflow:hidden; }
+.day-group header { display:flex; gap:.5rem; align-items:center; padding:.8rem; cursor:pointer; background:#fafafa; }
+.day-group .totals { margin-left:auto; color:var(--muted); }
+.session-row, .session-item .clickable { display:flex; gap:.6rem; align-items:center; padding:.7rem .8rem; border-top:1px solid var(--line); }
+.session-row .bar, .session-item .bar { width:4px; align-self:stretch; border-radius:3px; }
+.session-row .dur, .session-item .dur { margin-left:auto; color:var(--muted); }
+.tag { color:#fff; font-size:.75rem; padding:.05rem .4rem; border-radius:6px; margin-right:.25rem; }
+.session-item.editing { display:grid; gap:.5rem; padding:.8rem; border:1px solid var(--line); border-radius:12px; background:var(--card); }
+.tagpick { display:flex; flex-wrap:wrap; gap:.5rem; border:0; }
+.tagpick label { width:auto; }
+.filters, .manual, .settings { display:grid; gap:.5rem; margin-bottom:1rem; }
+.login { max-width:340px; margin:12vh auto; display:grid; gap:.7rem; background:var(--card); padding:1.5rem; border-radius:14px; border:1px solid var(--line); }
+.err { color:#dc2626; }
+.empty { color:var(--muted); text-align:center; padding:2rem 0; }
+@media (min-width:640px){ main{ padding:24px; } }

@@ -1,0 +1,5 @@
+<% if (!sessions.length) { %>
+  <p class="empty">No matching sessions.</p>
+<% } else { sessions.forEach(s => { %>
+  <%- include('session-item', { s, fmtDuration }) %>
+<% }) } %>

@@ -1,0 +1,5 @@
+<% if (!groups.length) { %>
+  <p class="empty">No sessions yet. Press “Start work”.</p>
+<% } else { groups.forEach(g => { %>
+  <%- include('day-group', { g, fmtDuration, fmtMoney }) %>
+<% }) } %>

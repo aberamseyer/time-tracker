@@ -1,0 +1,14 @@
+<%
+  const opts = [[0,'Off'],[15,'Nearest 15 min'],[30,'Nearest 30 min'],[60,'Nearest 1 hour']];
+  const radios = opts.map(([v,label]) =>
+    `<label><input type="radio" name="roundingMinutes" value="${v}" ${settings.rounding_minutes===v?'checked':''}> ${label}</label>`
+  ).join('');
+  const body = `
+    <h1>Settings</h1>
+    ${error ? `<p class="err">${error}</p>` : ''}
+    <form method="post" action="/settings" class="settings">
+      <fieldset><legend>Rounding</legend>${radios}</fieldset>
+      <button type="submit">Save</button>
+    </form>`;
+%>
+<%- include('layout', { title, nav, body }) %>
