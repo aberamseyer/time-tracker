@@ -33,6 +33,30 @@ test('update session sets description, task, tags', async () => {
   assert.deepEqual(s.tags.map(x => x.id), [tag]);
 });
 
+test('edit round-trips datetime-local as UTC without offset shift', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  const id = createSession(db, { segments: [{ start: 1, end: 2 }] });
+  const res = await agent.post('/sessions/' + id).type('form')
+    .send({ description: '', start: '2026-09-15T09:00', end: '2026-09-15T10:00' });
+  assert.equal(res.status, 200);
+  const s = getSession(db, id);
+  assert.equal(s.segments[0].start_utc, Date.parse('2026-09-15T09:00Z'));
+  assert.equal(s.segments[0].end_utc, Date.parse('2026-09-15T10:00Z'));
+});
+
+test('edit response keeps the row clickable to re-edit', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  const id = createSession(db, { segments: [{ start: 1, end: 2 }] });
+  const res = await agent.post('/sessions/' + id).type('form')
+    .send({ description: 'Fixed' });
+  assert.equal(res.status, 200);
+  assert.match(res.text, new RegExp(`hx-get="/sessions/${id}/edit"`));
+});
+
 test('manual create adds a session', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);

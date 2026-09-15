@@ -5,9 +5,11 @@ import { listTasks, listTags, createTask, createTag } from '../catalog.js';
 import { getSettings } from '../settings.js';
 import { fmtDuration, fmtMoney } from './tracking.js';
 
+// v1 treats wall-clock times as UTC; timezone setting is future work.
 function parseLocal(v) {
   if (!v) return null;
-  const ms = Date.parse(v);
+  const withZone = /[zZ]|[+-]\d\d:?\d\d$/.test(v) ? v : v + 'Z';
+  const ms = Date.parse(withZone);
   return Number.isNaN(ms) ? null : ms;
 }
 
@@ -70,7 +72,7 @@ export function sessionsRouter(db, hub) {
     }
     hub.broadcast('changed');
     const decorated = decorateSession(db, getSession(db, id), Date.now(), rounding());
-    res.render('partials/session-row', { s: decorated, fmtDuration });
+    res.render('partials/session-item', { s: decorated, fmtDuration });
   });
 
   r.post('/sessions', (req, res) => {
@@ -96,11 +98,13 @@ export function sessionsRouter(db, hub) {
       name: req.body.name, color: req.body.color || '#3b82f6',
       hourlyRateCents: req.body.rate ? Math.round(Number(req.body.rate) * 100) : null,
     });
+    hub.broadcast('changed');
     res.render('partials/task-tag-pickers', { tasks: listTasks(db), tags: listTags(db), s: null });
   });
 
   r.post('/tags', (req, res) => {
     createTag(db, { name: req.body.name, color: req.body.color || '#6b7280' });
+    hub.broadcast('changed');
     res.render('partials/task-tag-pickers', { tasks: listTasks(db), tags: listTags(db), s: null });
   });
 
