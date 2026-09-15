@@ -24,9 +24,33 @@ export function getUser(db, username) {
   return db.prepare('SELECT * FROM user WHERE username = ?').get(username);
 }
 
+// SqliteStore starts an internal setInterval for expired-row cleanup but
+// never exposes the timer, so it keeps any process alive (fine for the
+// long-running server; hangs short-lived tools like `node --test`).
+// Capture and unref it without touching store internals.
+function createUnrefdSqliteStore(db) {
+  const timers = [];
+  const originalSetInterval = global.setInterval;
+  global.setInterval = (...args) => {
+    const timer = originalSetInterval(...args);
+    timers.push(timer);
+    return timer;
+  };
+  let store;
+  try {
+    store = new SqliteStore({ client: db, expired: { clear: true, intervalMs: 900000 } });
+  } finally {
+    global.setInterval = originalSetInterval;
+  }
+  for (const timer of timers) {
+    if (timer && typeof timer.unref === 'function') timer.unref();
+  }
+  return store;
+}
+
 export function buildSessionMiddleware(db) {
   return session({
-    store: new SqliteStore({ client: db, expired: { clear: true, intervalMs: 900000 } }),
+    store: createUnrefdSqliteStore(db),
     secret: process.env.SESSION_SECRET || 'dev-insecure-secret',
     resave: false,
     saveUninitialized: false,

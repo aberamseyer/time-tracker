@@ -6,7 +6,7 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test --test-force-exit",
+    "test": "node --test",
     "seed": "node scripts/seed-user.js"
   },
   "dependencies": {
