@@ -5,6 +5,10 @@ import { createApp } from './app.js';
 import { createHub } from './ws.js';
 import { buildSessionMiddleware } from './auth.js';
 
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET must be set in production');
+}
+
 const db = openDb(process.env.DB_PATH || 'data.sqlite');
 const hub = createHub();
 const app = createApp({ db, hub });

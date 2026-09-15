@@ -49,12 +49,13 @@ function createUnrefdSqliteStore(db) {
 }
 
 export function buildSessionMiddleware(db) {
+  const secure = process.env.COOKIE_SECURE === '1' || process.env.NODE_ENV === 'production';
   return session({
     store: createUnrefdSqliteStore(db),
     secret: process.env.SESSION_SECRET || 'dev-insecure-secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 3600 * 1000 },
+    cookie: { httpOnly: true, sameSite: 'lax', secure, maxAge: 30 * 24 * 3600 * 1000 },
   });
 }
 
