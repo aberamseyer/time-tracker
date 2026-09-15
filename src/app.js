@@ -24,5 +24,14 @@ export function createApp({ db, hub }) {
   app.use(requireAuth, trackingRouter(db, hub));
   app.use(requireAuth, sessionsRouter(db, hub));
   app.use(requireAuth, settingsRouter(db, hub));
+
+  // eslint-disable-next-line no-unused-vars
+  app.use((err, req, res, next) => {
+    const status = err.status || 500;
+    if (req.get('HX-Request')) {
+      return res.status(status).render('partials/error', { message: 'Something went wrong' });
+    }
+    res.status(status).send('Something went wrong');
+  });
   return app;
 }
