@@ -1,18 +1,26 @@
 <%
+  function escapeHtmlAttr(str){return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   const list = include('partials/session-list', { sessions, fmtDuration, fmtMoney });
   const pickers = include('partials/task-tag-pickers', { tasks, tags, s: null });
+  const fields = include('partials/wu-fields', { s: null, tasks, tags });
+  const options = descriptions.map(d => `<option value="${escapeHtmlAttr(d)}">`).join('');
   const body = `
     <h1>Tasks</h1>
+    <datalist id="desc-options">${options}</datalist>
     <form class="filters" hx-get="/partials/session-list" hx-target="#session-list" hx-swap="innerHTML" hx-trigger="change, submit">
       <input name="q" placeholder="Search description" value="${escapeHtml(q.q || '')}">
-      <label><input type="checkbox" name="unlabelled" value="1" ${q.unlabelled ? 'checked' : ''}> Unlabelled</label>
-      <label><input type="checkbox" name="uncategorized" value="1" ${q.uncategorized ? 'checked' : ''}> Uncategorized</label>
+      <label class="toggle"><input type="checkbox" name="unlabelled" value="1" ${q.unlabelled ? 'checked' : ''}><span>Unlabelled</span></label>
+      <label class="toggle"><input type="checkbox" name="uncategorized" value="1" ${q.uncategorized ? 'checked' : ''}><span>Uncategorized</span></label>
     </form>
     ${pickers}
     <form class="manual" hx-post="/sessions" hx-target="#session-list" hx-swap="innerHTML">
-      <input name="description" placeholder="Description">
-      <input type="datetime-local" name="start" required>
-      <input type="datetime-local" name="end">
+      <input name="description" placeholder="Description" list="desc-options"
+             hx-get="/sessions/template" hx-trigger="change" hx-include="this" hx-target="next .wu-fields" hx-swap="innerHTML">
+      ${fields}
+      <div class="time-row">
+        <label>Start<input type="datetime-local" name="start" required></label>
+        <label>End<input type="datetime-local" name="end" required></label>
+      </div>
       <button>Add work unit</button>
     </form>
     <div id="session-list" hx-get="/partials/session-list" hx-trigger="tt:changed from:body" hx-swap="innerHTML">${list}</div>`;

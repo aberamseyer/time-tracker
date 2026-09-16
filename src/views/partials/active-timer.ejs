@@ -1,17 +1,27 @@
 <div id="active-timer" class="active-timer"
      hx-get="/partials/active-timer" hx-trigger="tt:changed from:body" hx-swap="outerHTML">
-  <% if (state.running) { %>
-    <div class="running" x-data="clock(<%= state.since %>)">
-      <span class="dot"></span>
-      <span class="label"><%= state.session.description || 'Working…' %></span>
-      <span class="elapsed" x-text="text"></span>
-      <form method="post" action="/timer/pause" hx-post="/timer/pause" hx-target="#active-timer" hx-swap="outerHTML">
-        <button class="pause">Pause</button></form>
-      <form method="post" action="/timer/stop" hx-post="/timer/stop" hx-target="#active-timer" hx-swap="outerHTML">
-        <button class="stop">Stop</button></form>
+  <% if (state.state !== 'none') { const s = state.session; %>
+    <div class="timer-card <%= state.state %>">
+      <div class="timer-head" x-data="clock(<%= state.elapsedMs %>, <%= state.state === 'running' %>)">
+        <span class="dot"></span>
+        <span class="elapsed" x-text="text"></span>
+        <div class="timer-controls">
+          <% if (state.state === 'running') { %>
+            <form hx-post="/timer/pause" hx-target="#active-timer" hx-swap="outerHTML"><button class="pause">Pause</button></form>
+          <% } else { %>
+            <form hx-post="/timer/resume" hx-target="#active-timer" hx-swap="outerHTML"><button class="resume">Resume</button></form>
+          <% } %>
+          <form hx-post="/timer/stop" hx-target="#active-timer" hx-swap="outerHTML"><button class="stop">Stop</button></form>
+        </div>
+      </div>
+      <form class="timer-edit" hx-post="/timer/update" hx-trigger="change"
+            hx-include="closest form" hx-target="#active-timer" hx-swap="outerHTML">
+        <input name="description" value="<%= s.description %>" placeholder="What are you working on?" list="desc-options">
+        <%- include('wu-fields', { s, tasks, tags }) %>
+      </form>
     </div>
   <% } else { %>
-    <form method="post" action="/timer/start" hx-post="/timer/start" hx-target="#active-timer" hx-swap="outerHTML">
+    <form hx-post="/timer/start" hx-target="#active-timer" hx-swap="outerHTML">
       <button class="start">Start work</button>
     </form>
   <% } %>

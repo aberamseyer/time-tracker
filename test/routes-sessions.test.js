@@ -46,11 +46,17 @@ test('edit updates fields and times, returns re-editable row', async () => {
   assert.equal(s.start_utc, Date.parse('2026-09-15T09:30Z'));
 });
 
-// NOTE: the `template endpoint prefills` test is intentionally OMITTED here.
-// It renders partials/wu-fields, which does not exist until Task 7. Per
-// controller ruling, that test is added in Task 7 alongside wu-fields.ejs.
-// Do NOT add it in this task. The GET /sessions/template ROUTE still ships
-// in this task (Step 3) — only its test is deferred.
+test('template endpoint prefills from last matching description', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  const t = createTask(db, { name: 'Dev' });
+  createSession(db, { description: 'Bug fix', details: 'notes', taskId: t, startUtc: 1, endUtc: 2 });
+  const res = await agent.get('/sessions/template').query({ description: 'Bug fix' });
+  assert.equal(res.status, 200);
+  assert.match(res.text, /notes/);            // details prefilled
+  assert.match(res.text, new RegExp(`value="${t}" selected`)); // task preselected
+});
 
 test('empty task name rejected 400', async () => {
   const { app, db } = makeApp();

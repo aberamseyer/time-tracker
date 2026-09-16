@@ -1,13 +1,13 @@
 <%
-  const opts = [[0,'Off'],[15,'Nearest 15 min'],[30,'Nearest 30 min'],[60,'Nearest 1 hour']];
-  const radios = opts.map(([v,label]) =>
-    `<label><input type="radio" name="roundingMinutes" value="${v}" ${settings.rounding_minutes===v?'checked':''}> ${label}</label>`
+  const opts = [[0,'Off'],[15,'15 min'],[30,'30 min'],[60,'1 hour']];
+  const seg = opts.map(([v,label]) =>
+    `<label class="seg${settings.rounding_minutes===v?' on':''}"><input type="radio" name="roundingMinutes" value="${v}" ${settings.rounding_minutes===v?'checked':''}><span>${label}</span></label>`
   ).join('');
   const body = `
     <h1>Settings</h1>
     ${error ? `<p class="err">${error}</p>` : ''}
     <form method="post" action="/settings" class="settings">
-      <fieldset><legend>Rounding</legend>${radios}</fieldset>
+      <fieldset><legend>Round up working time to the next…</legend><div class="segmented">${seg}</div></fieldset>
       <button type="submit">Save</button>
     </form>`;
 %>

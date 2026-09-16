@@ -10,7 +10,7 @@ test('settings page shows rounding options', async () => {
   await login(agent, db);
   const res = await agent.get('/settings');
   assert.equal(res.status, 200);
-  assert.match(res.text, /Rounding/);
+  assert.match(res.text, /Round up/);
 });
 
 test('posting rounding updates settings', async () => {

@@ -18,16 +18,17 @@
   connect();
 
   document.addEventListener('alpine:init', () => {
-    window.Alpine.data('clock', (since) => ({
-      text: '0:00',
+    window.Alpine.data('clock', (elapsedMs, running) => ({
+      text: '',
       init() {
-        const tick = () => {
-          const s = Math.floor((Date.now() - since) / 1000);
+        const origin = Date.now() - elapsedMs;
+        const render = (ms) => {
+          const s = Math.max(0, Math.floor(ms / 1000));
           const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
           this.text = (h ? h + ':' : '') + String(m).padStart(h ? 2 : 1, '0') + ':' + String(sec).padStart(2, '0');
         };
-        tick();
-        setInterval(tick, 1000);
+        render(elapsedMs);
+        if (running) setInterval(() => render(Date.now() - origin), 1000);
       },
     }));
   });
