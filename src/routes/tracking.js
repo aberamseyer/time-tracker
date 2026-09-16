@@ -1,7 +1,7 @@
 import express from 'express';
 import { startTimer, startTimerFrom, pauseTimer, stopTimer, resumeTimer, timerState, getActiveSession } from '../timer.js';
 import { listSessions, decorateSession, updateSession, setSessionTags, distinctDescriptions, latestByDescription } from '../sessions.js';
-import { listTasks, listTags } from '../catalog.js';
+import { listTasks, listTags, taskTagIds } from '../catalog.js';
 import { getSettings } from '../settings.js';
 
 export function fmtDuration(ms) {
@@ -57,13 +57,31 @@ export function trackingRouter(db, hub) {
     return { state: timerState(db, Date.now()), tasks: listTasks(db), tags: listTags(db), fmtDuration };
   }
 
+  function idsFrom(v) {
+    return (Array.isArray(v) ? v : v != null && v !== '' ? [v] : []).map(Number).filter(n => !Number.isNaN(n));
+  }
+  function filterFrom(q) {
+    return {
+      from: Date.now() - 14 * 24 * 3600 * 1000,
+      q: q.q || undefined,
+      taskIds: idsFrom(q.taskId),
+      tagIds: idsFrom(q.tagId),
+      invertTask: q.invertTask ? true : undefined,
+      invertTag: q.invertTag ? true : undefined,
+    };
+  }
+  function filterCtx(q) {
+    return {
+      tasks: listTasks(db), tags: listTags(db), q,
+      selTasks: idsFrom(q.taskId), selTags: idsFrom(q.tagId),
+    };
+  }
+
   r.get('/', (req, res) => {
-    const from = Date.now() - 14 * 24 * 3600 * 1000;
-    const sessions = listSessions(db, { from });
-    const groups = groupByDay(db, sessions, Date.now(), rounding());
+    const groups = groupByDay(db, listSessions(db, filterFrom(req.query)), Date.now(), rounding());
     res.render('tracking', {
       title: 'Time tracking', nav: 'tracking',
-      ...activeCtx(), groups, fmtMoney, descriptions: distinctDescriptions(db, '', 50),
+      ...activeCtx(), ...filterCtx(req.query), groups, fmtMoney, descriptions: distinctDescriptions(db, '', 50),
     });
   });
 
@@ -71,8 +89,7 @@ export function trackingRouter(db, hub) {
     res.render('partials/active-timer', activeCtx()));
 
   r.get('/partials/tracking-list', (req, res) => {
-    const from = Date.now() - 14 * 24 * 3600 * 1000;
-    const groups = groupByDay(db, listSessions(db, { from }), Date.now(), rounding());
+    const groups = groupByDay(db, listSessions(db, filterFrom(req.query)), Date.now(), rounding());
     res.render('partials/tracking-list', { groups, fmtDuration, fmtMoney });
   });
 
@@ -104,6 +121,10 @@ export function trackingRouter(db, hub) {
           if (taskId == null) taskId = tpl.task_id;
           if (!tagIds.length) tagIds = tpl.tags.map(t => t.id);
         }
+      }
+      // Assigning a task adds its default tags (without clobbering current ones).
+      if (taskId != null && taskId !== active.task_id) {
+        tagIds = [...new Set([...tagIds, ...taskTagIds(db, taskId)])];
       }
       updateSession(db, active.id, { description, details, taskId });
       setSessionTags(db, active.id, tagIds);

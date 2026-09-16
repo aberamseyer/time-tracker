@@ -1,4 +1,4 @@
-<form class="session-item editing" hx-post="/sessions/<%= s.id %>" hx-target="this" hx-swap="outerHTML">
+<form class="session-row editing" hx-post="/sessions/<%= s.id %>" hx-target="this" hx-swap="outerHTML">
   <input name="description" value="<%= s.description %>" placeholder="Description"
          list="desc-options" hx-get="/sessions/template" hx-trigger="change" hx-include="this"
          hx-target="next .wu-fields" hx-swap="outerHTML">
@@ -12,6 +12,6 @@
   <div class="actions">
     <button type="submit">Save</button>
     <button type="button" hx-post="/sessions/<%= s.id %>/delete"
-      hx-target="closest .session-item" hx-swap="outerHTML" class="danger">Delete</button>
+      hx-target="closest .session-row" hx-swap="outerHTML" class="danger">Delete</button>
   </div>
 </form>

@@ -2,9 +2,42 @@
   function escapeHtmlAttr(str){return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   const active = include('partials/active-timer', { state, tasks, tags, fmtDuration });
   const list = include('partials/tracking-list', { groups, fmtDuration, fmtMoney });
+  const manualAdd = include('partials/manual-add', { tasks, tags, error: null });
   const options = descriptions.map(d => `<option value="${escapeHtmlAttr(d)}">`).join('');
+  const taskChecked = (id) => selTasks.length === 0 || selTasks.includes(id);
+  const tagChecked = (id) => selTags.length === 0 || selTags.includes(id);
+
+  const taskItems = [`<label class="mi"><input type="checkbox" name="taskId" value="0" ${taskChecked(0)?'checked':''}><span class="sw" style="background:var(--line)"></span>Without task</label>`]
+    .concat(tasks.map(t => `<label class="mi"><input type="checkbox" name="taskId" value="${t.id}" ${taskChecked(t.id)?'checked':''}><span class="sw" style="background:${t.color}"></span>${escapeHtmlAttr(t.name)}</label>`)).join('');
+  const tagItems = [`<label class="mi"><input type="checkbox" name="tagId" value="0" ${tagChecked(0)?'checked':''}><span class="sw" style="background:var(--line)"></span>Without tag</label>`]
+    .concat(tags.map(t => `<label class="mi"><input type="checkbox" name="tagId" value="${t.id}" ${tagChecked(t.id)?'checked':''}><span class="sw" style="background:${t.color}"></span>${escapeHtmlAttr(t.name)}</label>`)).join('');
+
   const body = `${active}
     <datalist id="desc-options">${options}</datalist>
-    <div id="tracking-list" hx-get="/partials/tracking-list" hx-trigger="tt:changed from:body" hx-swap="innerHTML">${list}</div>`;
+    <div class="time-toolbar">
+      <details class="add-wu">
+        <summary title="Add work unit">＋</summary>
+        ${manualAdd}
+      </details>
+      <form class="filters" hx-get="/partials/tracking-list" hx-target="#tracking-list" hx-swap="innerHTML"
+            hx-trigger="change, keyup delay:300ms from:input[name='q'], tt:changed from:body">
+        <input class="q" name="q" placeholder="Search" value="${escapeHtmlAttr(q.q || '')}">
+        <details class="dropdown">
+          <summary>Task filter</summary>
+          <div class="menu">
+            <label class="mi"><input type="checkbox" name="invertTask" value="1" ${q.invertTask?'checked':''}><span>Invert filter</span></label>
+            ${taskItems}
+          </div>
+        </details>
+        <details class="dropdown">
+          <summary>Tag filter</summary>
+          <div class="menu">
+            <label class="mi"><input type="checkbox" name="invertTag" value="1" ${q.invertTag?'checked':''}><span>Invert filter</span></label>
+            ${tagItems}
+          </div>
+        </details>
+      </form>
+    </div>
+    <div id="tracking-list" hx-swap="innerHTML">${list}</div>`;
 %>
 <%- include('layout', { title, nav, body }) %>

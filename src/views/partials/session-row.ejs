@@ -1,5 +1,5 @@
-<div class="session-row">
-  <a class="row-link" href="/tasks?focus=<%= s.id %>#s-<%= s.id %>">
+<div class="session-row" id="s-<%= s.id %>">
+  <div class="clickable" hx-get="/sessions/<%= s.id %>/edit" hx-target="closest .session-row" hx-swap="outerHTML">
     <span class="bar" style="background: <%= s.task ? s.task.color : 'var(--line)' %>"></span>
     <div class="meta">
       <div class="title"><%= s.description || '(no description)' %><% if (s.task) { %> · <span class="task"><%= s.task.name %></span><% } %></div>
@@ -8,7 +8,7 @@
       </div>
     </div>
     <span class="dur"><%= fmtDuration(s.roundedMs) %></span>
-  </a>
+  </div>
   <form hx-post="/timer/start-from/<%= s.id %>" hx-target="#active-timer" hx-swap="outerHTML" class="row-play">
     <button class="resume" title="Start again">▶</button>
   </form>

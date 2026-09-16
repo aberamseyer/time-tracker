@@ -64,6 +64,21 @@ export function listSessions(db, filter = {}) {
     where.push('EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id AND st.tag_id = ?)');
     vals.push(filter.tagId);
   }
+  // Multi-select filters; id 0 means "without task" / "without tag".
+  if (filter.taskIds && filter.taskIds.length) {
+    const ids = filter.taskIds.filter(x => x > 0);
+    const parts = [];
+    if (ids.length) { parts.push(`s.task_id IN (${ids.map(() => '?').join(',')})`); vals.push(...ids); }
+    if (filter.taskIds.includes(0)) parts.push('s.task_id IS NULL');
+    where.push(`${filter.invertTask ? 'NOT ' : ''}(${parts.join(' OR ')})`);
+  }
+  if (filter.tagIds && filter.tagIds.length) {
+    const ids = filter.tagIds.filter(x => x > 0);
+    const parts = [];
+    if (ids.length) { parts.push(`EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id AND st.tag_id IN (${ids.map(() => '?').join(',')}))`); vals.push(...ids); }
+    if (filter.tagIds.includes(0)) parts.push('NOT EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id)');
+    where.push(`${filter.invertTag ? 'NOT ' : ''}(${parts.join(' OR ')})`);
+  }
   if (filter.from != null) { where.push('COALESCE(s.end_utc, s.start_utc) >= ?'); vals.push(filter.from); }
   if (filter.to != null) { where.push('s.start_utc <= ?'); vals.push(filter.to); }
   const sql = `SELECT * FROM session s

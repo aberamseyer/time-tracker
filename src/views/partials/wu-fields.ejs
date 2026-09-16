@@ -10,7 +10,7 @@
     <input class="qa-input" name="_qtask" placeholder="+ new task" autocomplete="off"
            onchange="event.stopPropagation()"
            onkeydown="if(event.key==='Enter'){event.preventDefault();this.nextElementSibling.click();}">
-    <button type="button" class="qa" hx-post="/tasks" hx-include="previous input"
+    <button type="button" class="qa" hx-post="/quick/task" hx-include="previous input"
             hx-target="previous .task-select" hx-swap="beforeend"
             hx-on::after-request="const s=this.closest('.task-line').querySelector('.task-select');s.value=s.lastElementChild.value;this.previousElementSibling.value='';htmx.trigger(this.closest('form'),'change')">Add</button>
   </div>
@@ -26,7 +26,7 @@
     <input class="qa-input" name="_qtag" placeholder="+ new tag" autocomplete="off"
            onchange="event.stopPropagation()"
            onkeydown="if(event.key==='Enter'){event.preventDefault();this.nextElementSibling.click();}">
-    <button type="button" class="qa" hx-post="/tags" hx-include="previous input"
+    <button type="button" class="qa" hx-post="/quick/tag" hx-include="previous input"
             hx-target="previous .chips" hx-swap="beforeend"
             hx-on::after-request="this.previousElementSibling.value='';htmx.trigger(this.closest('form'),'change')">Add</button>
   </div>

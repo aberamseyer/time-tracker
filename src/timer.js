@@ -1,4 +1,5 @@
 import { createSession, getSession, updateSession, decorateSession, setSessionTags } from './sessions.js';
+import { defaultTask, taskTagIds } from './catalog.js';
 import { getSettings } from './settings.js';
 
 export function getActiveSession(db) {
@@ -21,10 +22,13 @@ export function stopTimer(db, now) {
   return active.id;
 }
 
-export function startTimer(db, now, { taskId = null, description = '' } = {}) {
+export function startTimer(db, now, { taskId, description = '' } = {}) {
   const tx = db.transaction(() => {
     stopTimer(db, now);
-    return createSession(db, { taskId, description, startUtc: now, endUtc: null, createdAt: now });
+    const tid = taskId ?? (defaultTask(db)?.id ?? null);
+    const id = createSession(db, { taskId: tid, description, startUtc: now, endUtc: null, createdAt: now });
+    if (tid) setSessionTags(db, id, taskTagIds(db, tid));
+    return id;
   });
   return tx();
 }
