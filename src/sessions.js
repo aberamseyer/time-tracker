@@ -40,6 +40,10 @@ export function deleteSession(db, id) {
   db.prepare('DELETE FROM session WHERE id = ?').run(id);
 }
 
+// Stopgap: segments removed in v2 model. Keeps routes/sessions.js
+// (Task 6 scope) importable until it is rewritten.
+export function updateSegment() {}
+
 function hydrate(db, row) {
   const tags = db.prepare(
     `SELECT tag.* FROM tag JOIN session_tag st ON st.tag_id = tag.id
