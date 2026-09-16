@@ -17,7 +17,6 @@
     <a href="/tasks" class="<%= nav==='tasks'?'active':'' %>"><span class="ico">☰</span><span class="lbl">Tasks</span></a>
     <a href="/analytics" class="<%= nav==='analytics'?'active':'' %>"><span class="ico">📊</span><span class="lbl">Stats</span></a>
     <a href="/settings" class="<%= nav==='settings'?'active':'' %>"><span class="ico">⚙</span><span class="lbl">Settings</span></a>
-    <form method="post" action="/logout" class="logout"><button title="Log out"><span class="ico">⏻</span><span class="lbl">Logout</span></button></form>
   </nav>
   <% } %>
   <main class="<%= (typeof wide !== 'undefined' && wide) ? 'wide' : '' %>"><%- body %></main>

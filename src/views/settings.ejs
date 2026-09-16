@@ -15,6 +15,9 @@
     <h2>Tasks</h2>
     ${tasksBlock}
     <h2>Tags</h2>
-    ${tagsBlock}`;
+    ${tagsBlock}
+    <form method="post" action="/logout" class="logout-form">
+      <button class="danger">Log out</button>
+    </form>`;
 %>
 <%- include('layout', { title, nav, body }) %>
