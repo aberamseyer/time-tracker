@@ -1,11 +1,11 @@
 import express from 'express';
 import { listSessions, getSession, updateSession, setSessionTags,
-  createSession, deleteSession, updateSegment, decorateSession } from '../sessions.js';
+  createSession, deleteSession, decorateSession, latestByDescription, distinctDescriptions } from '../sessions.js';
 import { listTasks, listTags, createTask, createTag } from '../catalog.js';
 import { getSettings } from '../settings.js';
 import { fmtDuration, fmtMoney, escapeHtml } from './tracking.js';
 
-// v1 treats wall-clock times as UTC; timezone setting is future work.
+// Wall-clock times are treated as UTC (v2); timezone setting is future work.
 function parseLocal(v) {
   if (!v) return null;
   const withZone = /[zZ]|[+-]\d\d:?\d\d$/.test(v) ? v : v + 'Z';
@@ -34,21 +34,26 @@ export function sessionsRouter(db, hub) {
   }
 
   function renderList(res, q) {
-    const sessions = listSessions(db, filterFrom(q))
-      .map(s => decorateSession(db, s, Date.now(), rounding()));
+    const sessions = listSessions(db, filterFrom(q)).map(s => decorateSession(db, s, Date.now(), rounding()));
     res.render('partials/session-list', { sessions, fmtDuration, fmtMoney });
   }
 
   r.get('/tasks', (req, res) => {
-    const sessions = listSessions(db, filterFrom(req.query))
-      .map(s => decorateSession(db, s, Date.now(), rounding()));
+    const sessions = listSessions(db, filterFrom(req.query)).map(s => decorateSession(db, s, Date.now(), rounding()));
     res.render('tasks', {
       title: 'Tasks', nav: 'tasks', sessions,
-      tasks: listTasks(db), tags: listTags(db), q: req.query, fmtDuration, fmtMoney, escapeHtml,
+      tasks: listTasks(db), tags: listTags(db), q: req.query,
+      descriptions: distinctDescriptions(db, '', 50), fmtDuration, fmtMoney, escapeHtml,
     });
   });
 
   r.get('/partials/session-list', (req, res) => renderList(res, req.query));
+
+  r.get('/sessions/template', (req, res) => {
+    const tpl = latestByDescription(db, req.query.description || '');
+    const s = tpl ? { details: tpl.details, task_id: tpl.task_id, tags: tpl.tags } : { details: '', task_id: null, tags: [] };
+    res.render('partials/wu-fields', { s, tasks: listTasks(db), tags: listTags(db) });
+  });
 
   r.get('/sessions/:id/edit', (req, res) => {
     const s = getSession(db, Number(req.params.id));
@@ -57,10 +62,10 @@ export function sessionsRouter(db, hub) {
 
   r.post('/sessions/:id', (req, res) => {
     const id = Number(req.params.id);
+    let start, end;
     if (req.body.start) {
-      const s0 = getSession(db, id);
-      const start = parseLocal(req.body.start), end = parseLocal(req.body.end);
-      if (!start || !end || end < start || !s0.segments[0]) {
+      start = parseLocal(req.body.start); end = parseLocal(req.body.end);
+      if (!start || !end || end < start) {
         return res.status(400).render('partials/error', { message: 'Start and end times are required' });
       }
     }
@@ -68,15 +73,9 @@ export function sessionsRouter(db, hub) {
       description: req.body.description ?? '',
       details: req.body.details ?? '',
       taskId: req.body.taskId ? Number(req.body.taskId) : null,
+      ...(req.body.start ? { startUtc: start, endUtc: end } : {}),
     });
     setSessionTags(db, id, idsFrom(req.body, 'tagId'));
-    const s = getSession(db, id);
-    if (req.body.start && s.segments[0]) {
-      updateSegment(db, s.segments[0].id, {
-        start: parseLocal(req.body.start),
-        end: parseLocal(req.body.end),
-      });
-    }
     hub.broadcast('changed');
     const decorated = decorateSession(db, getSession(db, id), Date.now(), rounding());
     res.render('partials/session-item', { s: decorated, fmtDuration });
@@ -87,12 +86,13 @@ export function sessionsRouter(db, hub) {
     if (!start || !end || end < start) {
       return res.status(400).render('partials/error', { message: 'Start and end times are required' });
     }
-    createSession(db, {
+    const id = createSession(db, {
       description: req.body.description || '',
+      details: req.body.details || '',
       taskId: req.body.taskId ? Number(req.body.taskId) : null,
-      createdAt: start,
-      segments: [{ start, end }],
+      startUtc: start, endUtc: end, createdAt: start,
     });
+    setSessionTags(db, id, idsFrom(req.body, 'tagId'));
     hub.broadcast('changed');
     renderList(res, {});
   });
@@ -106,10 +106,7 @@ export function sessionsRouter(db, hub) {
   r.post('/tasks', (req, res) => {
     const name = (req.body.name || '').trim();
     if (!name) return res.status(400).render('partials/error', { message: 'Task name is required' });
-    createTask(db, {
-      name, color: req.body.color || '#3b82f6',
-      hourlyRateCents: req.body.rate ? Math.round(Number(req.body.rate) * 100) : null,
-    });
+    createTask(db, { name, color: req.body.color || '#3b82f6', hourlyRateCents: req.body.rate ? Math.round(Number(req.body.rate) * 100) : null });
     hub.broadcast('changed');
     res.render('partials/task-tag-pickers', { tasks: listTasks(db), tags: listTags(db), s: null });
   });

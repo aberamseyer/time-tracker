@@ -1,24 +1,14 @@
 <form class="session-item editing" hx-post="/sessions/<%= s.id %>" hx-target="this" hx-swap="outerHTML">
-  <input name="description" value="<%= s.description %>" placeholder="Description">
-  <textarea name="details" placeholder="Details"><%= s.details %></textarea>
-  <select name="taskId">
-    <option value="">(no task)</option>
-    <% tasks.forEach(t => { %>
-      <option value="<%= t.id %>" <%= s.task_id === t.id ? 'selected' : '' %>><%= t.name %></option>
-    <% }) %>
-  </select>
-  <fieldset class="tagpick">
-    <% tags.forEach(t => { %>
-      <label><input type="checkbox" name="tagId" value="<%= t.id %>"
-        <%= s.tags.some(x => x.id === t.id) ? 'checked' : '' %>> <%= t.name %></label>
-    <% }) %>
-  </fieldset>
-  <% if (s.segments[0]) { %>
-    <input type="datetime-local" name="start"
-      value="<%= new Date(s.segments[0].start_utc).toISOString().slice(0,16) %>">
-    <input type="datetime-local" name="end"
-      value="<%= s.segments[0].end_utc ? new Date(s.segments[0].end_utc).toISOString().slice(0,16) : '' %>">
-  <% } %>
+  <input name="description" value="<%= s.description %>" placeholder="Description"
+         list="desc-options" hx-get="/sessions/template" hx-trigger="change" hx-include="this"
+         hx-target="next .wu-fields" hx-swap="outerHTML">
+  <%- include('wu-fields', { s, tasks, tags }) %>
+  <div class="time-row">
+    <label>Start<input type="datetime-local" name="start"
+      value="<%= new Date(s.start_utc).toISOString().slice(0,16) %>"></label>
+    <label>End<input type="datetime-local" name="end"
+      value="<%= s.end_utc ? new Date(s.end_utc).toISOString().slice(0,16) : '' %>"></label>
+  </div>
   <div class="actions">
     <button type="submit">Save</button>
     <button type="button" hx-post="/sessions/<%= s.id %>/delete"

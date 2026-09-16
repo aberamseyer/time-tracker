@@ -1,49 +1,54 @@
-import { createSession, addSegment, getSession, decorateSession } from './sessions.js';
+import { createSession, getSession, updateSession, decorateSession } from './sessions.js';
 import { getSettings } from './settings.js';
 
-export function getOpenSegment(db) {
-  return db.prepare('SELECT * FROM segment WHERE end_utc IS NULL').get();
+export function getActiveSession(db) {
+  return db.prepare('SELECT * FROM session WHERE end_utc IS NULL').get();
 }
 
-function closeOpen(db, now) {
-  const open = getOpenSegment(db);
-  if (open) {
-    db.prepare('UPDATE segment SET end_utc = ? WHERE id = ?').run(now, open.id);
-    return open.session_id;
-  }
-  return null;
+function foldPause(active, now) {
+  // returns extra paused_ms to add if currently paused
+  return active.pause_started_at == null ? 0 : now - active.pause_started_at;
+}
+
+export function stopTimer(db, now) {
+  const active = getActiveSession(db);
+  if (!active) return null;
+  updateSession(db, active.id, {
+    endUtc: now,
+    pausedMs: active.paused_ms + foldPause(active, now),
+    pauseStartedAt: null,
+  });
+  return active.id;
 }
 
 export function startTimer(db, now, { taskId = null, description = '' } = {}) {
   const tx = db.transaction(() => {
-    closeOpen(db, now);
-    const id = createSession(db, { taskId, description, createdAt: now });
-    addSegment(db, id, now, null);
-    return id;
+    stopTimer(db, now);
+    return createSession(db, { taskId, description, startUtc: now, endUtc: null, createdAt: now });
   });
   return tx();
 }
 
 export function pauseTimer(db, now) {
-  return closeOpen(db, now);
+  const active = getActiveSession(db);
+  if (!active || active.pause_started_at != null) return active ? active.id : null;
+  updateSession(db, active.id, { pauseStartedAt: now });
+  return active.id;
 }
 
-export function resumeTimer(db, now, sessionId) {
-  const tx = db.transaction(() => {
-    closeOpen(db, now);
-    addSegment(db, sessionId, now, null);
-    return sessionId;
+export function resumeTimer(db, now) {
+  const active = getActiveSession(db);
+  if (!active || active.pause_started_at == null) return active ? active.id : null;
+  updateSession(db, active.id, {
+    pausedMs: active.paused_ms + (now - active.pause_started_at),
+    pauseStartedAt: null,
   });
-  return tx();
-}
-
-export function stopTimer(db, now) {
-  return closeOpen(db, now);
+  return active.id;
 }
 
 export function timerState(db, now) {
-  const open = getOpenSegment(db);
-  if (!open) return { running: false, session: null, since: null };
-  const session = decorateSession(db, getSession(db, open.session_id), now, getSettings(db).rounding_minutes);
-  return { running: true, session, since: open.start_utc };
+  const active = getActiveSession(db);
+  if (!active) return { state: 'none', session: null, elapsedMs: 0 };
+  const session = decorateSession(db, getSession(db, active.id), now, getSettings(db).rounding_minutes);
+  return { state: session.paused ? 'paused' : 'running', session, elapsedMs: session.durationMs };
 }

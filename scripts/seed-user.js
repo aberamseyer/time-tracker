@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { openDb } from '../src/db.js';
 import { seedUser } from '../src/auth.js';
 
