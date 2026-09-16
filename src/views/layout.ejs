@@ -7,8 +7,8 @@
   <title><%= title %></title>
   <link rel="stylesheet" href="/app.css">
   <script src="/vendor/htmx.min.js" defer></script>
-  <script src="/vendor/alpine.min.js" defer></script>
   <script src="/app.js" defer></script>
+  <script src="/vendor/alpine.min.js" defer></script>
 </head>
 <body class="<%= (typeof nav !== 'undefined' && nav) ? 'app' : 'auth' %>">
   <% if (typeof nav !== 'undefined' && nav) { %>
