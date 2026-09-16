@@ -15,7 +15,7 @@
     ${pickers}
     <form class="manual" hx-post="/sessions" hx-target="#session-list" hx-swap="innerHTML">
       <input name="description" placeholder="Description" list="desc-options"
-             hx-get="/sessions/template" hx-trigger="change" hx-include="this" hx-target="next .wu-fields" hx-swap="innerHTML">
+             hx-get="/sessions/template" hx-trigger="change" hx-include="this" hx-target="next .wu-fields" hx-swap="outerHTML">
       ${fields}
       <div class="time-row">
         <label>Start<input type="datetime-local" name="start" required></label>

@@ -1,7 +1,7 @@
 <form class="session-item editing" hx-post="/sessions/<%= s.id %>" hx-target="this" hx-swap="outerHTML">
   <input name="description" value="<%= s.description %>" placeholder="Description"
          list="desc-options" hx-get="/sessions/template" hx-trigger="change" hx-include="this"
-         hx-target="next .wu-fields" hx-swap="innerHTML">
+         hx-target="next .wu-fields" hx-swap="outerHTML">
   <%- include('wu-fields', { s, tasks, tags }) %>
   <div class="time-row">
     <label>Start<input type="datetime-local" name="start"

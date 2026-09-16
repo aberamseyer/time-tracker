@@ -15,7 +15,7 @@
         </div>
       </div>
       <form class="timer-edit" hx-post="/timer/update" hx-trigger="change"
-            hx-include="closest form" hx-target="#active-timer" hx-swap="outerHTML">
+            hx-include="closest form" hx-target="#active-timer" hx-swap="outerHTML" hx-sync="this:replace">
         <input name="description" value="<%= s.description %>" placeholder="What are you working on?" list="desc-options">
         <%- include('wu-fields', { s, tasks, tags }) %>
       </form>
