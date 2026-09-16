@@ -1,15 +1,16 @@
 <%
-  const qs = `from=${p.from}&to=${p.to}&by=${p.by}&metric=${p.metric}&chart=${p.chart}`;
+  const base = `by=${p.by}&metric=${p.metric}&chart=${p.chart}&type=${p.type}`;
+  const qs = `${base}&ps=${p.ps}`;
   const fmtVal = report.metric === 'earnings' ? (v) => fmtMoney(v) : (v) => fmtDuration(v);
-  const days = report.days, series = report.series;
-  // geometry
+  const buckets = report.buckets, series = report.series;
   const W = 720, H = 240, x0 = 46, x1 = 710, yT = 12, yB = 214;
   const plotW = x1 - x0, plotH = yB - yT;
-  const nb = Math.max(1, days.length);
+  const nb = Math.max(1, buckets.length);
   const band = plotW / nb;
+  const step = Math.ceil(nb / 8);
   let max = 1;
   if (p.chart === 'bars') {
-    days.forEach((d, i) => { const sum = series.reduce((n, s) => n + s.values[i], 0); if (sum > max) max = sum; });
+    buckets.forEach((d, i) => { const sum = series.reduce((n, s) => n + s.values[i], 0); if (sum > max) max = sum; });
   } else {
     series.forEach(s => s.values.forEach(v => { if (v > max) max = v; }));
   }
@@ -18,21 +19,24 @@
     `<label class="seg${cur === v ? ' on' : ''}"><input type="radio" name="${name}" value="${v}" ${cur === v ? 'checked' : ''}><span>${label}</span></label>`).join('');
 %>
 <div id="analytics" hx-get="/partials/analytics-panel?<%= qs %>" hx-trigger="tt:changed from:body" hx-swap="outerHTML">
-  <form class="an-controls" hx-get="/partials/analytics-panel" hx-target="#analytics" hx-swap="outerHTML" hx-trigger="change, submit">
-    <input type="hidden" name="from" value="<%= p.from %>">
-    <input type="hidden" name="to" value="<%= p.to %>">
+  <form class="an-controls" hx-get="/partials/analytics-panel" hx-target="#analytics" hx-swap="outerHTML" hx-trigger="change">
+    <input type="hidden" name="ps" value="<%= p.ps %>">
     <div class="segmented"><%- seg('chart', p.chart, [['bars','Bars'],['lines','Lines']]) %></div>
     <div class="segmented"><%- seg('metric', p.metric, [['time','Working time'],['earnings','Earnings']]) %></div>
     <div class="segmented"><%- seg('by', p.by, [['task','Tasks'],['tag','Tags']]) %></div>
-    <div class="an-range">
-      <button name="shift" value="-1" title="Previous">‹</button>
-      <span class="label"><%= rangeLabel %></span>
-      <button name="shift" value="1" title="Next">›</button>
-    </div>
+    <div class="segmented"><%- seg('type', p.type, [['week','Week'],['month','Month'],['quarter','Quarter']]) %></div>
   </form>
 
+  <div class="an-periods">
+    <% periods.forEach(per => { %>
+      <button class="<%= per.selected ? 'sel' : '' %>"
+              hx-get="/partials/analytics-panel?<%= base %>&ps=<%= per.ps %>"
+              hx-target="#analytics" hx-swap="outerHTML"><%= per.label %></button>
+    <% }) %>
+  </div>
+
   <% if (report.grandTotal === 0) { %>
-    <p class="empty">No completed work in this range.</p>
+    <p class="empty">No completed work in <%= rangeLabel %>.</p>
   <% } else { %>
     <svg class="chart" viewBox="0 0 <%= W %> <%= H %>" preserveAspectRatio="none" role="img">
       <% [0, 0.5, 1].forEach(f => { const y = yB - f * plotH; %>
@@ -40,7 +44,7 @@
         <text x="<%= x0 - 6 %>" y="<%= y + 4 %>" text-anchor="end" font-size="11" fill="var(--muted)"><%= fmtVal(Math.round(max * f)) %></text>
       <% }) %>
       <% if (p.chart === 'bars') { %>
-        <% days.forEach((d, i) => { let acc = 0; const bw = band * 0.68; const bx = x0 + i * band + (band - bw) / 2; %>
+        <% buckets.forEach((d, i) => { let acc = 0; const bw = band * 0.68; const bx = x0 + i * band + (band - bw) / 2; %>
           <% series.forEach(s => { const v = s.values[i]; if (v <= 0) return; const h = (v / max) * plotH; const y = yB - acc - h; acc += h; %>
             <rect x="<%= bx %>" y="<%= y %>" width="<%= bw %>" height="<%= h %>" style="fill:<%= s.color %>"/>
           <% }) %>
@@ -50,7 +54,7 @@
           <polyline points="<%= pts %>" fill="none" style="stroke:<%= s.color %>" stroke-width="2" stroke-linejoin="round"/>
         <% }) %>
       <% } %>
-      <% days.forEach((d, i) => { if (nb > 10 && i % 2) return; %>
+      <% buckets.forEach((d, i) => { if (i % step) return; %>
         <text x="<%= x0 + i * band + band / 2 %>" y="<%= H - 6 %>" text-anchor="middle" font-size="10" fill="var(--muted)"><%= d.label %></text>
       <% }) %>
     </svg>
@@ -63,8 +67,8 @@
   <% } %>
 
   <form class="an-export" method="get" action="/export.csv">
-    <input type="hidden" name="from" value="<%= p.from %>">
-    <input type="hidden" name="to" value="<%= p.to %>">
+    <input type="hidden" name="type" value="<%= p.type %>">
+    <input type="hidden" name="ps" value="<%= p.ps %>">
     <select name="taskId"><option value="">All tasks</option>
       <% tasks.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
     </select>
