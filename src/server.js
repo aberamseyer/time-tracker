@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
 import { openDb } from './db.js';
