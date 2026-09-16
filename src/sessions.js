@@ -1,34 +1,27 @@
-import { segmentsDurationMs, roundDurationMs, earningsCents } from './calc.js';
+import { sessionDurationMs, roundUpDurationMs, earningsCents } from './calc.js';
 import { effectiveRateCents } from './catalog.js';
 
-export function createSession(db, { description = '', details = '', taskId = null, createdAt = Date.now(), segments = [] } = {}) {
-  const id = db.prepare(
-    'INSERT INTO session (description, details, task_id, created_at) VALUES (?, ?, ?, ?)'
-  ).run(description, details, taskId, createdAt).lastInsertRowid;
-  for (const seg of segments) addSegment(db, id, seg.start, seg.end ?? null);
-  return id;
-}
-
-export function addSegment(db, sessionId, start, end = null) {
+export function createSession(db, {
+  description = '', details = '', taskId = null,
+  startUtc, endUtc = null, pausedMs = 0, pauseStartedAt = null,
+  createdAt = Date.now(),
+} = {}) {
   return db.prepare(
-    'INSERT INTO segment (session_id, start_utc, end_utc) VALUES (?, ?, ?)'
-  ).run(sessionId, start, end).lastInsertRowid;
+    `INSERT INTO session (description, details, task_id, created_at, start_utc, end_utc, paused_ms, pause_started_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(description, details, taskId, createdAt, startUtc, endUtc, pausedMs, pauseStartedAt).lastInsertRowid;
 }
 
-export function updateSegment(db, id, fields) {
-  const sets = [], vals = [];
-  if ('start' in fields) { sets.push('start_utc = ?'); vals.push(fields.start); }
-  if ('end' in fields) { sets.push('end_utc = ?'); vals.push(fields.end); }
-  if (!sets.length) return;
-  vals.push(id);
-  db.prepare(`UPDATE segment SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
-}
+const COLS = {
+  description: 'description', details: 'details', taskId: 'task_id',
+  startUtc: 'start_utc', endUtc: 'end_utc', pausedMs: 'paused_ms', pauseStartedAt: 'pause_started_at',
+};
 
 export function updateSession(db, id, fields) {
   const sets = [], vals = [];
-  if ('description' in fields) { sets.push('description = ?'); vals.push(fields.description); }
-  if ('details' in fields) { sets.push('details = ?'); vals.push(fields.details); }
-  if ('taskId' in fields) { sets.push('task_id = ?'); vals.push(fields.taskId); }
+  for (const [key, col] of Object.entries(COLS)) {
+    if (key in fields) { sets.push(`${col} = ?`); vals.push(fields[key]); }
+  }
   if (!sets.length) return;
   vals.push(id);
   db.prepare(`UPDATE session SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
@@ -47,22 +40,18 @@ export function deleteSession(db, id) {
   db.prepare('DELETE FROM session WHERE id = ?').run(id);
 }
 
-export function getSession(db, id) {
-  const row = db.prepare('SELECT * FROM session WHERE id = ?').get(id);
-  if (!row) return undefined;
-  return hydrate(db, row);
-}
-
 function hydrate(db, row) {
-  const segments = db.prepare(
-    'SELECT * FROM segment WHERE session_id = ? ORDER BY start_utc'
-  ).all(row.id);
   const tags = db.prepare(
     `SELECT tag.* FROM tag JOIN session_tag st ON st.tag_id = tag.id
      WHERE st.session_id = ? ORDER BY tag.name`
   ).all(row.id);
   const task = row.task_id ? db.prepare('SELECT * FROM task WHERE id = ?').get(row.task_id) : null;
-  return { ...row, segments, tags, task };
+  return { ...row, tags, task };
+}
+
+export function getSession(db, id) {
+  const row = db.prepare('SELECT * FROM session WHERE id = ?').get(id);
+  return row ? hydrate(db, row) : undefined;
 }
 
 export function listSessions(db, filter = {}) {
@@ -75,26 +64,37 @@ export function listSessions(db, filter = {}) {
     where.push('EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id AND st.tag_id = ?)');
     vals.push(filter.tagId);
   }
-  if (filter.from != null) {
-    where.push('EXISTS (SELECT 1 FROM segment g WHERE g.session_id = s.id AND COALESCE(g.end_utc, g.start_utc) >= ?)');
-    vals.push(filter.from);
-  }
-  if (filter.to != null) {
-    where.push('EXISTS (SELECT 1 FROM segment g WHERE g.session_id = s.id AND g.start_utc <= ?)');
-    vals.push(filter.to);
-  }
-  const sql = `
-    SELECT s.*, (SELECT MIN(start_utc) FROM segment g WHERE g.session_id = s.id) AS first_start
-    FROM session s
+  if (filter.from != null) { where.push('COALESCE(s.end_utc, s.start_utc) >= ?'); vals.push(filter.from); }
+  if (filter.to != null) { where.push('s.start_utc <= ?'); vals.push(filter.to); }
+  const sql = `SELECT * FROM session s
     ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
-    ORDER BY first_start IS NULL, first_start DESC, s.id DESC`;
+    ORDER BY s.start_utc DESC, s.id DESC`;
   return db.prepare(sql).all(...vals).map(row => hydrate(db, row));
 }
 
 export function decorateSession(db, session, now, roundingMinutes) {
-  const running = session.segments.some(s => s.end_utc == null);
-  const durationMs = segmentsDurationMs(session.segments, now);
-  const roundedMs = running ? durationMs : roundDurationMs(durationMs, roundingMinutes);
+  const active = session.end_utc == null;
+  const paused = active && session.pause_started_at != null;
+  const running = active && !paused;
+  const durationMs = sessionDurationMs(session, now);
+  const roundedMs = active ? durationMs : roundUpDurationMs(durationMs, roundingMinutes);
   const rate = effectiveRateCents(db, session.task_id);
-  return { ...session, running, durationMs, roundedMs, earningsCents: earningsCents(roundedMs, rate) };
+  return { ...session, active, paused, running, durationMs, roundedMs, earningsCents: earningsCents(roundedMs, rate) };
+}
+
+export function distinctDescriptions(db, q = '', limit = 8) {
+  return db.prepare(
+    `SELECT description, MAX(start_utc) AS last FROM session
+     WHERE description <> '' AND description LIKE ?
+     GROUP BY description ORDER BY last DESC LIMIT ?`
+  ).all('%' + q + '%', limit).map(r => r.description);
+}
+
+export function latestByDescription(db, description) {
+  const row = db.prepare(
+    `SELECT * FROM session WHERE description = ? ORDER BY start_utc DESC, id DESC LIMIT 1`
+  ).get(description);
+  if (!row) return null;
+  const h = hydrate(db, row);
+  return { details: h.details, task_id: h.task_id, task: h.task, tags: h.tags };
 }
