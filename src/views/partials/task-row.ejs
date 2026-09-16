@@ -1,0 +1,15 @@
+<div class="task-row<%= t.archived ? ' is-hidden' : '' %>" id="t-<%= t.id %>">
+  <div class="clickable" hx-get="/tasks/<%= t.id %>/edit" hx-target="closest .task-row" hx-swap="outerHTML">
+    <span class="dot" style="background: <%= t.color %>"></span>
+    <div class="meta">
+      <div class="name"><%= t.name %></div>
+      <% if (t.is_default) { %><div class="sub">Default task</div><% } %>
+    </div>
+  </div>
+  <div class="task-actions">
+    <% if (t.hourly_rate_cents != null) { %><span class="rate">$<%= (t.hourly_rate_cents / 100).toFixed(0) %>/h</span><% } %>
+    <form hx-post="/tasks/<%= t.id %>/hide" hx-target="closest .task-row" hx-swap="outerHTML" class="eye">
+      <button type="submit" title="<%= t.archived ? 'Show' : 'Hide' %>"><%= t.archived ? '🙈' : '👁' %></button>
+    </form>
+  </div>
+</div>

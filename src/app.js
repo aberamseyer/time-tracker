@@ -5,6 +5,7 @@ import { buildSessionMiddleware, requireAuth } from './auth.js';
 import { authRouter } from './routes/auth.js';
 import { trackingRouter } from './routes/tracking.js';
 import { sessionsRouter } from './routes/sessions.js';
+import { tasksRouter } from './routes/tasks.js';
 import { settingsRouter } from './routes/settings.js';
 import { analyticsRouter } from './routes/analytics.js';
 
@@ -24,6 +25,7 @@ export function createApp({ db, hub }) {
   app.use(authRouter(db));
   app.use(requireAuth, trackingRouter(db, hub));
   app.use(requireAuth, sessionsRouter(db, hub));
+  app.use(requireAuth, tasksRouter(db, hub));
   app.use(requireAuth, settingsRouter(db, hub));
   app.use(requireAuth, analyticsRouter(db));
 

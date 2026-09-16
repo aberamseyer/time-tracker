@@ -1,0 +1,22 @@
+<form class="task-row editing" id="t-<%= task.id %>" hx-post="/tasks/<%= task.id %>" hx-target="this" hx-swap="outerHTML">
+  <div class="te-grid">
+    <label>Name<input name="name" value="<%= task.name %>" required></label>
+    <label>Details<textarea name="details" placeholder="Details"><%= task.details %></textarea></label>
+    <div class="te-row">
+      <label>Color<input type="color" name="color" value="<%= task.color %>"></label>
+      <label>Hourly rate<input type="number" step="0.01" name="rate" placeholder="0"
+             value="<%= task.hourly_rate_cents != null ? (task.hourly_rate_cents / 100).toFixed(2) : '' %>"></label>
+    </div>
+    <div class="te-row">
+      <label class="toggle"><input type="checkbox" name="isDefault" value="1" <%= task.is_default ? 'checked' : '' %>><span>Default task</span></label>
+      <label class="toggle"><input type="checkbox" name="hidden" value="1" <%= task.archived ? 'checked' : '' %>><span>Hide task</span></label>
+    </div>
+  </div>
+  <%- include('task-tags', { task, tags }) %>
+  <div class="actions">
+    <button type="submit">Save</button>
+    <button type="button" hx-get="/tasks/<%= task.id %>/row" hx-target="closest .task-row" hx-swap="outerHTML">Cancel</button>
+    <button type="button" class="danger" hx-post="/tasks/<%= task.id %>/delete"
+            hx-target="closest .task-row" hx-swap="outerHTML" hx-confirm="Delete this task?">Delete</button>
+  </div>
+</form>

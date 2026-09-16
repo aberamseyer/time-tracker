@@ -17,9 +17,11 @@ CREATE TABLE IF NOT EXISTS client (
 CREATE TABLE IF NOT EXISTS task (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '',
   color TEXT NOT NULL DEFAULT '#3b82f6',
   hourly_rate_cents INTEGER,
   client_id INTEGER REFERENCES client(id) ON DELETE SET NULL,
+  is_default INTEGER NOT NULL DEFAULT 0,
   archived INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS tag (
@@ -27,6 +29,11 @@ CREATE TABLE IF NOT EXISTS tag (
   name TEXT NOT NULL,
   color TEXT NOT NULL DEFAULT '#6b7280',
   archived INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS task_tag (
+  task_id INTEGER NOT NULL REFERENCES task(id) ON DELETE CASCADE,
+  tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+  PRIMARY KEY (task_id, tag_id)
 );
 CREATE TABLE IF NOT EXISTS session (
   id INTEGER PRIMARY KEY,
@@ -56,8 +63,15 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
+function addColumn(db, table, col, def) {
+  try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch { /* exists */ }
+}
+
 export function migrate(db) {
   db.exec(SCHEMA);
+  // Columns added after v2; ALTER is a no-op when they already exist.
+  addColumn(db, 'task', 'details', "TEXT NOT NULL DEFAULT ''");
+  addColumn(db, 'task', 'is_default', 'INTEGER NOT NULL DEFAULT 0');
 }
 
 export function seedSettings(db) {
