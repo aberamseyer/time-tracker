@@ -1,5 +1,5 @@
 import express from 'express';
-import { startTimer, pauseTimer, stopTimer, resumeTimer, timerState, getActiveSession } from '../timer.js';
+import { startTimer, startTimerFrom, pauseTimer, stopTimer, resumeTimer, timerState, getActiveSession } from '../timer.js';
 import { listSessions, decorateSession, updateSession, setSessionTags, distinctDescriptions, latestByDescription } from '../sessions.js';
 import { listTasks, listTags } from '../catalog.js';
 import { getSettings } from '../settings.js';
@@ -85,6 +85,7 @@ export function trackingRouter(db, hub) {
   r.post('/timer/pause', (req, res) => { pauseTimer(db, Date.now()); afterMutation(res); });
   r.post('/timer/resume', (req, res) => { resumeTimer(db, Date.now()); afterMutation(res); });
   r.post('/timer/stop', (req, res) => { stopTimer(db, Date.now()); afterMutation(res); });
+  r.post('/timer/start-from/:id', (req, res) => { startTimerFrom(db, Date.now(), Number(req.params.id)); afterMutation(res); });
 
   // Autosave the running editor. When the description changes to a known one,
   // fill still-empty details/task/tags from the most recent matching session

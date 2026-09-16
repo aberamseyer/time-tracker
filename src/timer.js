@@ -1,4 +1,4 @@
-import { createSession, getSession, updateSession, decorateSession } from './sessions.js';
+import { createSession, getSession, updateSession, decorateSession, setSessionTags } from './sessions.js';
 import { getSettings } from './settings.js';
 
 export function getActiveSession(db) {
@@ -25,6 +25,22 @@ export function startTimer(db, now, { taskId = null, description = '' } = {}) {
   const tx = db.transaction(() => {
     stopTimer(db, now);
     return createSession(db, { taskId, description, startUtc: now, endUtc: null, createdAt: now });
+  });
+  return tx();
+}
+
+// Start a new running session copying a past one's description, details, task, tags.
+export function startTimerFrom(db, now, sourceId) {
+  const src = getSession(db, sourceId);
+  if (!src) return null;
+  const tx = db.transaction(() => {
+    stopTimer(db, now);
+    const id = createSession(db, {
+      description: src.description, details: src.details, taskId: src.task_id,
+      startUtc: now, endUtc: null, createdAt: now,
+    });
+    setSessionTags(db, id, src.tags.map(t => t.id));
+    return id;
   });
   return tx();
 }

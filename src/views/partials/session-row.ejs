@@ -7,4 +7,7 @@
     </div>
   </div>
   <span class="dur"><%= fmtDuration(s.roundedMs) %></span>
+  <form hx-post="/timer/start-from/<%= s.id %>" hx-target="#active-timer" hx-swap="outerHTML" class="row-play">
+    <button class="resume" title="Start again">▶</button>
+  </form>
 </div>
