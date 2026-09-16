@@ -1,0 +1,76 @@
+<%
+  const qs = `from=${p.from}&to=${p.to}&by=${p.by}&metric=${p.metric}&chart=${p.chart}`;
+  const fmtVal = report.metric === 'earnings' ? (v) => fmtMoney(v) : (v) => fmtDuration(v);
+  const days = report.days, series = report.series;
+  // geometry
+  const W = 720, H = 240, x0 = 46, x1 = 710, yT = 12, yB = 214;
+  const plotW = x1 - x0, plotH = yB - yT;
+  const nb = Math.max(1, days.length);
+  const band = plotW / nb;
+  let max = 1;
+  if (p.chart === 'bars') {
+    days.forEach((d, i) => { const sum = series.reduce((n, s) => n + s.values[i], 0); if (sum > max) max = sum; });
+  } else {
+    series.forEach(s => s.values.forEach(v => { if (v > max) max = v; }));
+  }
+  const yOf = (v) => yB - (v / max) * plotH;
+  const seg = (name, cur, opts) => opts.map(([v, label]) =>
+    `<label class="seg${cur === v ? ' on' : ''}"><input type="radio" name="${name}" value="${v}" ${cur === v ? 'checked' : ''}><span>${label}</span></label>`).join('');
+%>
+<div id="analytics" hx-get="/partials/analytics-panel?<%= qs %>" hx-trigger="tt:changed from:body" hx-swap="outerHTML">
+  <form class="an-controls" hx-get="/partials/analytics-panel" hx-target="#analytics" hx-swap="outerHTML" hx-trigger="change, submit">
+    <input type="hidden" name="from" value="<%= p.from %>">
+    <input type="hidden" name="to" value="<%= p.to %>">
+    <div class="segmented"><%- seg('chart', p.chart, [['bars','Bars'],['lines','Lines']]) %></div>
+    <div class="segmented"><%- seg('metric', p.metric, [['time','Working time'],['earnings','Earnings']]) %></div>
+    <div class="segmented"><%- seg('by', p.by, [['task','Tasks'],['tag','Tags']]) %></div>
+    <div class="an-range">
+      <button name="shift" value="-1" title="Previous">‹</button>
+      <span class="label"><%= rangeLabel %></span>
+      <button name="shift" value="1" title="Next">›</button>
+    </div>
+  </form>
+
+  <% if (report.grandTotal === 0) { %>
+    <p class="empty">No completed work in this range.</p>
+  <% } else { %>
+    <svg class="chart" viewBox="0 0 <%= W %> <%= H %>" preserveAspectRatio="none" role="img">
+      <% [0, 0.5, 1].forEach(f => { const y = yB - f * plotH; %>
+        <line x1="<%= x0 %>" y1="<%= y %>" x2="<%= x1 %>" y2="<%= y %>" stroke="var(--line)" stroke-width="1"/>
+        <text x="<%= x0 - 6 %>" y="<%= y + 4 %>" text-anchor="end" font-size="11" fill="var(--muted)"><%= fmtVal(Math.round(max * f)) %></text>
+      <% }) %>
+      <% if (p.chart === 'bars') { %>
+        <% days.forEach((d, i) => { let acc = 0; const bw = band * 0.68; const bx = x0 + i * band + (band - bw) / 2; %>
+          <% series.forEach(s => { const v = s.values[i]; if (v <= 0) return; const h = (v / max) * plotH; const y = yB - acc - h; acc += h; %>
+            <rect x="<%= bx %>" y="<%= y %>" width="<%= bw %>" height="<%= h %>" style="fill:<%= s.color %>"/>
+          <% }) %>
+        <% }) %>
+      <% } else { %>
+        <% series.forEach(s => { const pts = s.values.map((v, i) => `${(x0 + i * band + band / 2).toFixed(1)},${yOf(v).toFixed(1)}`).join(' '); %>
+          <polyline points="<%= pts %>" fill="none" style="stroke:<%= s.color %>" stroke-width="2" stroke-linejoin="round"/>
+        <% }) %>
+      <% } %>
+      <% days.forEach((d, i) => { if (nb > 10 && i % 2) return; %>
+        <text x="<%= x0 + i * band + band / 2 %>" y="<%= H - 6 %>" text-anchor="middle" font-size="10" fill="var(--muted)"><%= d.label %></text>
+      <% }) %>
+    </svg>
+    <ul class="legend">
+      <% series.forEach(s => { %>
+        <li><span class="sw" style="background:<%= s.color %>"></span><%= s.name %><span class="v"><%= fmtVal(s.total) %></span></li>
+      <% }) %>
+      <li class="total"><span class="sw" style="background:transparent"></span>Total<span class="v"><%= fmtVal(report.grandTotal) %></span></li>
+    </ul>
+  <% } %>
+
+  <form class="an-export" method="get" action="/export.csv">
+    <input type="hidden" name="from" value="<%= p.from %>">
+    <input type="hidden" name="to" value="<%= p.to %>">
+    <select name="taskId"><option value="">All tasks</option>
+      <% tasks.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+    </select>
+    <select name="tagId"><option value="">All tags</option>
+      <% tags.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+    </select>
+    <button>Export CSV</button>
+  </form>
+</div>

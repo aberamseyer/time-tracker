@@ -6,6 +6,7 @@ import { authRouter } from './routes/auth.js';
 import { trackingRouter } from './routes/tracking.js';
 import { sessionsRouter } from './routes/sessions.js';
 import { settingsRouter } from './routes/settings.js';
+import { analyticsRouter } from './routes/analytics.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,6 +25,7 @@ export function createApp({ db, hub }) {
   app.use(requireAuth, trackingRouter(db, hub));
   app.use(requireAuth, sessionsRouter(db, hub));
   app.use(requireAuth, settingsRouter(db, hub));
+  app.use(requireAuth, analyticsRouter(db));
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
