@@ -1,7 +1,6 @@
 <%
   function escapeHtmlAttr(str){return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-  const list = include('partials/session-list', { sessions, fmtDuration, fmtMoney });
-  const pickers = include('partials/task-tag-pickers', { tasks, tags, s: null });
+  const list = include('partials/session-list', { sessions, fmtDuration, fmtMoney, focus });
   const fields = include('partials/wu-fields', { s: null, tasks, tags });
   const options = descriptions.map(d => `<option value="${escapeHtmlAttr(d)}">`).join('');
   const body = `
@@ -12,7 +11,6 @@
       <label class="toggle"><input type="checkbox" name="unlabelled" value="1" ${q.unlabelled ? 'checked' : ''}><span>Unlabelled</span></label>
       <label class="toggle"><input type="checkbox" name="uncategorized" value="1" ${q.uncategorized ? 'checked' : ''}><span>Uncategorized</span></label>
     </form>
-    ${pickers}
     <form class="manual" hx-post="/sessions" hx-target="#session-list" hx-swap="innerHTML">
       <input name="description" placeholder="Description" list="desc-options"
              hx-get="/sessions/template" hx-trigger="change" hx-include="this" hx-target="next .wu-fields" hx-swap="outerHTML">

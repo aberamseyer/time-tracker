@@ -2,11 +2,9 @@
   function escapeHtmlAttr(str){return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   const active = include('partials/active-timer', { state, tasks, tags, fmtDuration });
   const list = include('partials/tracking-list', { groups, fmtDuration, fmtMoney });
-  const pickers = include('partials/task-tag-pickers', { tasks, tags, s: null });
   const options = descriptions.map(d => `<option value="${escapeHtmlAttr(d)}">`).join('');
   const body = `${active}
     <datalist id="desc-options">${options}</datalist>
-    ${pickers}
     <div id="tracking-list" hx-get="/partials/tracking-list" hx-trigger="tt:changed from:body" hx-swap="innerHTML">${list}</div>`;
 %>
 <%- include('layout', { title, nav, body }) %>

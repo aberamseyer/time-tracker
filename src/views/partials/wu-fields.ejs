@@ -1,11 +1,19 @@
 <div class="wu-fields">
   <textarea name="details" placeholder="Details"><%= s && s.details ? s.details : '' %></textarea>
-  <select name="taskId" class="task-select">
-    <option value="">(no task)</option>
-    <% tasks.forEach(t => { %>
-      <option value="<%= t.id %>" <%= s && s.task_id === t.id ? 'selected' : '' %>><%= t.name %></option>
-    <% }) %>
-  </select>
+  <div class="task-line">
+    <select name="taskId" class="task-select">
+      <option value="">(no task)</option>
+      <% tasks.forEach(t => { %>
+        <option value="<%= t.id %>" <%= s && s.task_id === t.id ? 'selected' : '' %>><%= t.name %></option>
+      <% }) %>
+    </select>
+    <input class="qa-input" name="_qtask" placeholder="+ new task" autocomplete="off"
+           onchange="event.stopPropagation()"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();this.nextElementSibling.click();}">
+    <button type="button" class="qa" hx-post="/tasks" hx-include="previous input"
+            hx-target="previous .task-select" hx-swap="beforeend"
+            hx-on::after-request="const s=this.closest('.task-line').querySelector('.task-select');s.value=s.lastElementChild.value;this.previousElementSibling.value='';htmx.trigger(this.closest('form'),'change')">Add</button>
+  </div>
   <div class="chips">
     <% tags.forEach(t => { const on = s && s.tags && s.tags.some(x => x.id === t.id); %>
       <label class="chip<%= on ? ' on' : '' %>" style="--chip: <%= t.color %>">
@@ -13,5 +21,13 @@
         <span><%= t.name %></span>
       </label>
     <% }) %>
+  </div>
+  <div class="tag-line">
+    <input class="qa-input" name="_qtag" placeholder="+ new tag" autocomplete="off"
+           onchange="event.stopPropagation()"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();this.nextElementSibling.click();}">
+    <button type="button" class="qa" hx-post="/tags" hx-include="previous input"
+            hx-target="previous .chips" hx-swap="beforeend"
+            hx-on::after-request="this.previousElementSibling.value='';htmx.trigger(this.closest('form'),'change')">Add</button>
   </div>
 </div>

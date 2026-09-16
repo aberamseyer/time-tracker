@@ -43,6 +43,7 @@ export function sessionsRouter(db, hub) {
     res.render('tasks', {
       title: 'Tasks', nav: 'tasks', sessions,
       tasks: listTasks(db), tags: listTags(db), q: req.query,
+      focus: req.query.focus ? Number(req.query.focus) : null,
       descriptions: distinctDescriptions(db, '', 50), fmtDuration, fmtMoney, escapeHtml,
     });
   });
@@ -103,20 +104,19 @@ export function sessionsRouter(db, hub) {
     res.status(200).end();
   });
 
+  // Quick-add from the work-unit card: create and return an option/chip to inject.
   r.post('/tasks', (req, res) => {
-    const name = (req.body.name || '').trim();
+    const name = (req.body._qtask || req.body.name || '').trim();
     if (!name) return res.status(400).render('partials/error', { message: 'Task name is required' });
-    createTask(db, { name, color: req.body.color || '#3b82f6', hourlyRateCents: req.body.rate ? Math.round(Number(req.body.rate) * 100) : null });
-    hub.broadcast('changed');
-    res.render('partials/task-tag-pickers', { tasks: listTasks(db), tags: listTags(db), s: null });
+    const id = createTask(db, { name });
+    res.render('partials/task-option', { t: { id, name } });
   });
 
   r.post('/tags', (req, res) => {
-    const name = (req.body.name || '').trim();
+    const name = (req.body._qtag || req.body.name || '').trim();
     if (!name) return res.status(400).render('partials/error', { message: 'Tag name is required' });
-    createTag(db, { name, color: req.body.color || '#6b7280' });
-    hub.broadcast('changed');
-    res.render('partials/task-tag-pickers', { tasks: listTasks(db), tags: listTags(db), s: null });
+    const id = createTag(db, { name });
+    res.render('partials/tag-chip', { t: { id, name, color: '#6b7280' } });
   });
 
   return r;

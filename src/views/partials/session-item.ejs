@@ -1,5 +1,7 @@
-<div class="session-item">
-  <div hx-get="/sessions/<%= s.id %>/edit" hx-target="closest .session-item" hx-swap="outerHTML" class="clickable">
+<% const focused = typeof focus !== 'undefined' && focus === s.id; %>
+<div class="session-item<%= focused ? ' focused' : '' %>" id="s-<%= s.id %>">
+  <div hx-get="/sessions/<%= s.id %>/edit" hx-target="closest .session-item" hx-swap="outerHTML"
+       hx-trigger="<%= focused ? 'load, click' : 'click' %>" class="clickable">
     <span class="bar" style="background: <%= s.task ? s.task.color : 'var(--line)' %>"></span>
     <div class="meta">
       <div class="title"><%= s.description || '(no description)' %><% if (s.task) { %> · <span class="task"><%= s.task.name %></span><% } %></div>

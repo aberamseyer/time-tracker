@@ -1,12 +1,14 @@
 <div class="session-row">
-  <span class="bar" style="background: <%= s.task ? s.task.color : 'var(--line)' %>"></span>
-  <div class="meta">
-    <div class="title"><%= s.description || '(no description)' %><% if (s.task) { %> · <span class="task"><%= s.task.name %></span><% } %></div>
-    <div class="tags">
-      <% s.tags.forEach(t => { %><span class="tag" style="--chip: <%= t.color %>"><%= t.name %></span><% }) %>
+  <a class="row-link" href="/tasks?focus=<%= s.id %>#s-<%= s.id %>">
+    <span class="bar" style="background: <%= s.task ? s.task.color : 'var(--line)' %>"></span>
+    <div class="meta">
+      <div class="title"><%= s.description || '(no description)' %><% if (s.task) { %> · <span class="task"><%= s.task.name %></span><% } %></div>
+      <div class="tags">
+        <% s.tags.forEach(t => { %><span class="tag" style="--chip: <%= t.color %>"><%= t.name %></span><% }) %>
+      </div>
     </div>
-  </div>
-  <span class="dur"><%= fmtDuration(s.roundedMs) %></span>
+    <span class="dur"><%= fmtDuration(s.roundedMs) %></span>
+  </a>
   <form hx-post="/timer/start-from/<%= s.id %>" hx-target="#active-timer" hx-swap="outerHTML" class="row-play">
     <button class="resume" title="Start again">▶</button>
   </form>
