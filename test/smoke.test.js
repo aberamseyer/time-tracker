@@ -19,8 +19,10 @@ test('e2e: login, start, stop, tracking + tasks pages render', async () => {
   const home = await agent.get('/');
   assert.equal(home.status, 200);
   assert.match(home.text, /Start work|Resume|Stop/);
+  assert.match(home.text, /Add work unit/); // manual add lives on Time now
   const tasks = await agent.get('/tasks');
-  assert.match(tasks.text, /Add work unit/);
+  assert.equal(tasks.status, 200);
+  assert.match(tasks.text, /New task/); // task manager
 });
 
 test('e2e: description template prefills the work-unit fields', async () => {

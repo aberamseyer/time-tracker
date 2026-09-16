@@ -5,14 +5,16 @@ import { makeApp, login } from './helpers.js';
 import { createSession, getSession } from '../src/sessions.js';
 import { createTask, createTag } from '../src/catalog.js';
 
-test('unlabelled filter lists only bare sessions', async () => {
+test('time filter shows only sessions without a task', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  createSession(db, { description: 'labeled', startUtc: 1, endUtc: 2 });
-  createSession(db, { startUtc: 3, endUtc: 4 });
-  const res = await agent.get('/partials/session-list?unlabelled=1');
-  assert.match(res.text, /no description/);
+  const now = Date.now();
+  const t = createTask(db, { name: 'Paid' });
+  createSession(db, { description: 'labeled', taskId: t, startUtc: now - 3600000, endUtc: now });
+  createSession(db, { description: 'bareone', startUtc: now - 7200000, endUtc: now - 3600000 });
+  const res = await agent.get('/partials/tracking-list?taskId=0');
+  assert.match(res.text, /bareone/);
   assert.doesNotMatch(res.text, /labeled/);
 });
 
@@ -58,18 +60,18 @@ test('template endpoint prefills from last matching description', async () => {
   assert.match(res.text, new RegExp(`value="${t}" selected`)); // task preselected
 });
 
-test('empty task name rejected 400', async () => {
+test('empty quick-task name rejected 400', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const res = await agent.post('/tasks').type('form').send({ name: '' });
+  const res = await agent.post('/quick/task').type('form').send({ _qtask: '' });
   assert.equal(res.status, 400);
 });
 
-test('xss: q param is escaped', async () => {
+test('xss: search param is escaped on Time view', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const res = await agent.get('/tasks').query({ q: '"><script>alert(1)</script>' });
+  const res = await agent.get('/').query({ q: '"><script>alert(1)</script>' });
   assert.doesNotMatch(res.text, /<script>alert\(1\)<\/script>/);
 });
