@@ -1,0 +1,16 @@
+<div id="settings-tags" class="manage">
+  <% tags.forEach(t => { %>
+    <form class="manage-row" hx-post="/settings/tags/<%= t.id %>" hx-target="#settings-tags" hx-swap="outerHTML">
+      <input type="color" name="color" value="<%= t.color %>">
+      <input name="name" value="<%= t.name %>" required>
+      <button title="Save">Save</button>
+      <button class="danger" title="Archive" hx-post="/settings/tags/<%= t.id %>/archive"
+              hx-target="#settings-tags" hx-swap="outerHTML">✕</button>
+    </form>
+  <% }) %>
+  <form class="manage-row new" hx-post="/settings/tags" hx-target="#settings-tags" hx-swap="outerHTML">
+    <input type="color" name="color" value="#6b7280">
+    <input name="name" placeholder="New tag" required>
+    <button>Add</button>
+  </form>
+</div>

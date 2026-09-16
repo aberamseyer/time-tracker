@@ -24,6 +24,14 @@ export function listClients(db) {
   return db.prepare('SELECT * FROM client WHERE archived = 0 ORDER BY name').all();
 }
 
+export function updateTask(db, id, { name, color, hourlyRateCents = null }) {
+  db.prepare('UPDATE task SET name = ?, color = ?, hourly_rate_cents = ? WHERE id = ?')
+    .run(name, color, hourlyRateCents, id);
+}
+export function updateTag(db, id, { name, color }) {
+  db.prepare('UPDATE tag SET name = ?, color = ? WHERE id = ?').run(name, color, id);
+}
+
 export function archiveTask(db, id) {
   db.prepare('UPDATE task SET archived = 1 WHERE id = ?').run(id);
 }

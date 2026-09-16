@@ -3,12 +3,18 @@
   const seg = opts.map(([v,label]) =>
     `<label class="seg${settings.rounding_minutes===v?' on':''}"><input type="radio" name="roundingMinutes" value="${v}" ${settings.rounding_minutes===v?'checked':''}><span>${label}</span></label>`
   ).join('');
+  const tasksBlock = include('partials/settings-tasks', { tasks });
+  const tagsBlock = include('partials/settings-tags', { tags });
   const body = `
     <h1>Settings</h1>
     ${error ? `<p class="err">${error}</p>` : ''}
     <form method="post" action="/settings" class="settings">
       <fieldset><legend>Round up working time to the next…</legend><div class="segmented">${seg}</div></fieldset>
       <button type="submit">Save</button>
-    </form>`;
+    </form>
+    <h2>Tasks</h2>
+    ${tasksBlock}
+    <h2>Tags</h2>
+    ${tagsBlock}`;
 %>
 <%- include('layout', { title, nav, body }) %>
