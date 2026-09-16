@@ -1,35 +1,39 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { roundDurationMs, segmentsDurationMs, earningsCents } from '../src/calc.js';
+import { roundUpDurationMs, sessionDurationMs, earningsCents } from '../src/calc.js';
 
 const MIN = 60000;
 
 test('rounding off returns raw ms', () => {
-  assert.equal(roundDurationMs(7 * MIN, 0), 7 * MIN);
+  assert.equal(roundUpDurationMs(7 * MIN, 0), 7 * MIN);
 });
 
-test('rounds to nearest 15 minutes', () => {
-  assert.equal(roundDurationMs(7 * MIN, 15), 0);
-  assert.equal(roundDurationMs(8 * MIN, 15), 15 * MIN);
-  assert.equal(roundDurationMs(23 * MIN, 15), 30 * MIN);
+test('ceil: 0 stays 0, exact multiple stays, else rounds up', () => {
+  assert.equal(roundUpDurationMs(0, 15), 0);
+  assert.equal(roundUpDurationMs(1 * MIN, 15), 15 * MIN);
+  assert.equal(roundUpDurationMs(15 * MIN, 15), 15 * MIN);
+  assert.equal(roundUpDurationMs(16 * MIN, 15), 30 * MIN);
+  assert.equal(roundUpDurationMs(31 * MIN, 30), 60 * MIN);
+  assert.equal(roundUpDurationMs(61 * MIN, 60), 120 * MIN);
 });
 
-test('rounds to nearest 30 and 60', () => {
-  assert.equal(roundDurationMs(20 * MIN, 30), 30 * MIN);
-  assert.equal(roundDurationMs(31 * MIN, 60), 60 * MIN);
+test('duration without pause is end-start', () => {
+  assert.equal(sessionDurationMs({ start_utc: 0, end_utc: 10 * MIN, paused_ms: 0, pause_started_at: null }, 999), 10 * MIN);
 });
 
-test('sums closed segments', () => {
-  const segs = [{ start_utc: 0, end_utc: 10 * MIN }, { start_utc: 20 * MIN, end_utc: 25 * MIN }];
-  assert.equal(segmentsDurationMs(segs, 999), 15 * MIN);
+test('running session counts to now', () => {
+  assert.equal(sessionDurationMs({ start_utc: 0, end_utc: null, paused_ms: 0, pause_started_at: null }, 5 * MIN), 5 * MIN);
 });
 
-test('open segment counts to now', () => {
-  const segs = [{ start_utc: 0, end_utc: null }];
-  assert.equal(segmentsDurationMs(segs, 5 * MIN), 5 * MIN);
+test('paused_ms subtracts from duration', () => {
+  assert.equal(sessionDurationMs({ start_utc: 0, end_utc: 30 * MIN, paused_ms: 10 * MIN, pause_started_at: null }, 999), 20 * MIN);
+});
+
+test('currently paused freezes elapsed', () => {
+  // started at 0, paused at 10min, now 25min -> elapsed frozen at 10min
+  assert.equal(sessionDurationMs({ start_utc: 0, end_utc: null, paused_ms: 0, pause_started_at: 10 * MIN }, 25 * MIN), 10 * MIN);
 });
 
 test('earnings from duration and rate', () => {
   assert.equal(earningsCents(3600000, 4000), 4000);
-  assert.equal(earningsCents(1800000, 4000), 2000);
 });

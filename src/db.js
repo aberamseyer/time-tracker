@@ -33,16 +33,14 @@ CREATE TABLE IF NOT EXISTS session (
   description TEXT NOT NULL DEFAULT '',
   details TEXT NOT NULL DEFAULT '',
   task_id INTEGER REFERENCES task(id) ON DELETE SET NULL,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  start_utc INTEGER,
+  end_utc INTEGER,
+  paused_ms INTEGER NOT NULL DEFAULT 0,
+  pause_started_at INTEGER
 );
-CREATE TABLE IF NOT EXISTS segment (
-  id INTEGER PRIMARY KEY,
-  session_id INTEGER NOT NULL REFERENCES session(id) ON DELETE CASCADE,
-  start_utc INTEGER NOT NULL,
-  end_utc INTEGER
-);
-CREATE UNIQUE INDEX IF NOT EXISTS one_open_segment
-  ON segment((1)) WHERE end_utc IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS one_active_session
+  ON session((1)) WHERE end_utc IS NULL;
 CREATE TABLE IF NOT EXISTS session_tag (
   session_id INTEGER NOT NULL REFERENCES session(id) ON DELETE CASCADE,
   tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE,

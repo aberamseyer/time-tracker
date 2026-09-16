@@ -1,16 +1,13 @@
-export function roundDurationMs(ms, roundingMinutes) {
-  if (!roundingMinutes) return ms;
-  const interval = roundingMinutes * 60000;
-  return Math.round(ms / interval) * interval;
+export function roundUpDurationMs(ms, minutes) {
+  if (!minutes) return ms;
+  const interval = minutes * 60000;
+  return Math.ceil(ms / interval) * interval;
 }
 
-export function segmentsDurationMs(segments, now) {
-  let total = 0;
-  for (const s of segments) {
-    const end = s.end_utc == null ? now : s.end_utc;
-    total += end - s.start_utc;
-  }
-  return total;
+export function sessionDurationMs(s, now) {
+  const end = s.end_utc == null ? now : s.end_utc;
+  const currentPause = s.pause_started_at == null ? 0 : now - s.pause_started_at;
+  return (end - s.start_utc) - (s.paused_ms || 0) - currentPause;
 }
 
 export function earningsCents(durationMs, rateCents) {
