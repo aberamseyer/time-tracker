@@ -21,7 +21,7 @@
       </form>
     </div>
   <% } else { %>
-    <form hx-post="/timer/start" hx-target="#active-timer" hx-swap="outerHTML">
+    <form class="start-form" hx-post="/timer/start" hx-target="#active-timer" hx-swap="outerHTML">
       <button class="start">Start work</button>
     </form>
   <% } %>
