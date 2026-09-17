@@ -3,9 +3,12 @@ name: Deploy
 on:
   push:
     branches: [master]
+  pull_request:
   workflow_dispatch:
 
 jobs:
+  # Runs in the cloud for every push and PR (including forks). Never touches the
+  # self-hosted runner, so fork PR code cannot execute on the deploy machine.
   test:
     runs-on: ubuntu-latest
     steps:
@@ -17,22 +20,15 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  # Self-hosted runner on the laptop; reaches the WireGuard-only VPS over WG.
+  # Gated to push/dispatch only — fork PRs cannot trigger it.
   deploy:
     needs: test
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    runs-on: self-hosted
     concurrency: deploy-production
     steps:
       - uses: actions/checkout@v4
-
-      - name: Configure SSH
-        run: |
-          mkdir --parents ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "${SSH_PORT:-22}" -H "$SSH_HOST" >> ~/.ssh/known_hosts
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
 
       - name: Rsync code to VPS
         run: |
@@ -44,7 +40,7 @@ jobs:
             --exclude '*.sqlite' \
             --exclude '*.sqlite-*' \
             --exclude '*.db' \
-            -e "ssh -i ~/.ssh/deploy_key -p ${SSH_PORT:-22}" \
+            -e "ssh -o StrictHostKeyChecking=accept-new -p ${SSH_PORT:-22}" \
             ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -54,7 +50,7 @@ jobs:
 
       - name: Install deps and restart service
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \
+          ssh -o StrictHostKeyChecking=accept-new -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \
             "cd '$DEPLOY_PATH' && npm ci --omit=dev && sudo systemctl restart '$SERVICE_NAME'"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -65,7 +61,7 @@ jobs:
 
       - name: Health check
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" bash -s -- "$HEALTH_URL" "$SERVICE_NAME" <<'REMOTE'
+          ssh -o StrictHostKeyChecking=accept-new -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" bash -s -- "$HEALTH_URL" "$SERVICE_NAME" <<'REMOTE'
             set -euo pipefail
             url="$1"; svc="$2"
             for attempt in $(seq 1 10); do
