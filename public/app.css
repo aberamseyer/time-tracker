@@ -108,7 +108,8 @@ legend { color:var(--muted); font-size:.9rem; margin-bottom:.4rem; }
 .dropdown > summary { list-style:none; cursor:pointer; padding:.6rem .8rem; border:1px solid var(--line);
   border-radius:10px; background:var(--card); white-space:nowrap; min-height:var(--tap); display:inline-flex; align-items:center; }
 .dropdown > summary::-webkit-details-marker { display:none; }
-.dropdown .menu { position:absolute; z-index:15; margin-top:.3rem; min-width:200px; max-height:60vh; overflow:auto;
+.dropdown .menu { position:absolute; z-index:15; margin-top:.3rem; right:0; left:auto;
+  min-width:200px; max-width:min(320px, calc(100vw - 1.5rem)); max-height:60vh; overflow:auto;
   background:var(--card); border:1px solid var(--line); border-radius:10px; padding:.4rem; box-shadow:0 8px 24px rgba(0,0,0,.25); }
 .mi { display:flex; align-items:center; gap:.5rem; padding:.4rem .5rem; cursor:pointer; border-radius:8px; min-height:0; }
 .mi:hover { background:var(--line); }
