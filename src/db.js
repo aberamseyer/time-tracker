@@ -78,11 +78,27 @@ export function seedSettings(db) {
   db.prepare('INSERT OR IGNORE INTO settings (id) VALUES (1)').run();
 }
 
+// Close DBs before env teardown; unclosed handles assert on node 24 exit.
+const openDatabases = new Set();
+let exitHookInstalled = false;
+
+function installExitHook() {
+  if (exitHookInstalled) return;
+  exitHookInstalled = true;
+  process.once('exit', () => {
+    for (const db of openDatabases) {
+      try { if (db.open) db.close(); } catch { /* already closing */ }
+    }
+  });
+}
+
 export function openDb(path = ':memory:') {
   const db = new Database(path);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   migrate(db);
   seedSettings(db);
+  openDatabases.add(db);
+  installExitHook();
   return db;
 }
