@@ -17,6 +17,16 @@
   }
   connect();
 
+  // Keep group headers pinned just below the sticky search bar.
+  function trackStuckTop() {
+    const bar = document.querySelector('.time-toolbar');
+    if (!bar) return;
+    const set = () => document.documentElement.style.setProperty('--stuck-top', bar.offsetHeight + 'px');
+    set();
+    new ResizeObserver(set).observe(bar);
+  }
+  trackStuckTop();
+
   document.addEventListener('alpine:init', () => {
     window.Alpine.data('clock', (elapsedMs, running) => ({
       text: '',

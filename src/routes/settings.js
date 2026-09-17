@@ -1,13 +1,15 @@
 import express from 'express';
 import { getSettings, updateSettings } from '../settings.js';
 import { listTags, createTag, updateTag, archiveTag } from '../catalog.js';
+import { suggestColor } from '../colors.js';
 
 export function settingsRouter(db, hub) {
   const r = express.Router();
 
   r.get('/settings', (req, res) =>
     res.render('settings', {
-      title: 'Settings', nav: 'settings', settings: getSettings(db), tags: listTags(db), error: null,
+      title: 'Settings', nav: 'settings', settings: getSettings(db), tags: listTags(db),
+      newTagColor: suggestColor(db, 'tag'), error: null,
     }));
 
   r.post('/settings', (req, res) => {
@@ -21,12 +23,14 @@ export function settingsRouter(db, hub) {
       res.redirect('/settings');
     } catch {
       res.render('settings', {
-        title: 'Settings', nav: 'settings', settings: getSettings(db), tags: listTags(db), error: 'Invalid setting value',
+        title: 'Settings', nav: 'settings', settings: getSettings(db), tags: listTags(db),
+        newTagColor: suggestColor(db, 'tag'), error: 'Invalid setting value',
       });
     }
   });
 
-  const tagsPartial = (res) => res.render('partials/settings-tags', { tags: listTags(db) });
+  const tagsPartial = (res) =>
+    res.render('partials/settings-tags', { tags: listTags(db), newTagColor: suggestColor(db, 'tag') });
 
   r.post('/settings/tags', (req, res) => {
     const name = (req.body.name || '').trim();

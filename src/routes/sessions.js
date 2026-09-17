@@ -1,7 +1,7 @@
 import express from 'express';
 import { getSession, updateSession, setSessionTags,
   createSession, deleteSession, decorateSession, latestByDescription } from '../sessions.js';
-import { listTasks, listTags, createTask, createTag, taskTagIds } from '../catalog.js';
+import { listTasks, listTags, createTask, createTag, getTag, taskTagIds } from '../catalog.js';
 import { getSettings } from '../settings.js';
 import { fmtDuration } from './tracking.js';
 
@@ -93,7 +93,7 @@ export function sessionsRouter(db, hub) {
     const name = (req.body._qtag || '').trim();
     if (!name) return res.status(400).render('partials/error', { message: 'Tag name is required' });
     const id = createTag(db, { name });
-    res.render('partials/tag-chip', { t: { id, name, color: '#6b7280' } });
+    res.render('partials/tag-chip', { t: getTag(db, id) });
   });
 
   return r;

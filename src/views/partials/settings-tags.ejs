@@ -9,7 +9,7 @@
     </form>
   <% }) %>
   <form class="manage-row new" hx-post="/settings/tags" hx-target="#settings-tags" hx-swap="outerHTML">
-    <input type="color" name="color" value="#6b7280">
+    <input type="color" name="color" value="<%= newTagColor %>">
     <input name="name" placeholder="New tag" required>
     <button>Add</button>
   </form>

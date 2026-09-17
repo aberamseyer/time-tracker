@@ -1,13 +1,16 @@
+import { suggestColor } from './colors.js';
+
 export function createClient(db, { name, address = '', defaultRateCents = null, currency = 'USD' }) {
   return db.prepare(
     'INSERT INTO client (name, address, default_rate_cents, currency) VALUES (?, ?, ?, ?)'
   ).run(name, address, defaultRateCents, currency).lastInsertRowid;
 }
 
-export function createTask(db, { name, details = '', color = '#3b82f6', hourlyRateCents = null, clientId = null }) {
+export function createTask(db, { name, details = '', color, hourlyRateCents = null, clientId = null }) {
+  const c = color ?? suggestColor(db, 'task');
   return db.prepare(
     'INSERT INTO task (name, details, color, hourly_rate_cents, client_id) VALUES (?, ?, ?, ?, ?)'
-  ).run(name, details, color, hourlyRateCents, clientId).lastInsertRowid;
+  ).run(name, details, c, hourlyRateCents, clientId).lastInsertRowid;
 }
 
 export function getTask(db, id) {
@@ -43,8 +46,13 @@ export function deleteTask(db, id) {
   db.prepare('DELETE FROM task WHERE id = ?').run(id);
 }
 
-export function createTag(db, { name, color = '#6b7280' }) {
-  return db.prepare('INSERT INTO tag (name, color) VALUES (?, ?)').run(name, color).lastInsertRowid;
+export function createTag(db, { name, color }) {
+  const c = color ?? suggestColor(db, 'tag');
+  return db.prepare('INSERT INTO tag (name, color) VALUES (?, ?)').run(name, c).lastInsertRowid;
+}
+
+export function getTag(db, id) {
+  return db.prepare('SELECT * FROM tag WHERE id = ?').get(id);
 }
 
 export function listTasks(db) {
