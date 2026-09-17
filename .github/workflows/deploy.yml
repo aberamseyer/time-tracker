@@ -51,7 +51,7 @@ jobs:
       - name: Install deps and restart service
         run: |
           ssh -o StrictHostKeyChecking=accept-new -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \
-            "cd '$DEPLOY_PATH' && npm ci --omit=dev && sudo systemctl restart '$SERVICE_NAME'"
+            "source ~/.nvm/nvm.sh && cd '$DEPLOY_PATH' && npm ci --omit=dev && sudo systemctl restart '$SERVICE_NAME'"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}

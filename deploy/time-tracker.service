@@ -1,0 +1,21 @@
+# Install: copy to /etc/systemd/system/time-tracker.service, edit the
+# placeholders, then: sudo systemctl daemon-reload && sudo systemctl enable --now time-tracker
+#
+# Find NODE_BIN on the VPS with:  readlink -f "$(nvm which current)"
+# It looks like /home/DEPLOY_USER/.nvm/versions/node/vXX.Y.Z/bin/node
+
+[Unit]
+Description=time-tracker
+After=network.target
+
+[Service]
+Type=simple
+User=DEPLOY_USER
+WorkingDirectory=/home/DEPLOY_USER/time-tracker
+ExecStart=/home/DEPLOY_USER/.nvm/versions/node/vXX.Y.Z/bin/node src/server.js
+Restart=on-failure
+RestartSec=3
+# App loads .env via dotenv; nothing else needed here.
+
+[Install]
+WantedBy=multi-user.target
