@@ -15,9 +15,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
-      - run: npm ci
+      - uses: actions/cache@v4
+        id: modules
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
       - run: npm test
 
   # Self-hosted runner on the laptop; reaches the WireGuard-only VPS over WG.
@@ -36,6 +42,7 @@ jobs:
             --exclude '.git' \
             --exclude '.github' \
             --exclude 'node_modules' \
+            --exclude '.deploy-deps-stamp' \
             --exclude '.env' \
             --exclude '*.sqlite' \
             --exclude '*.sqlite-*' \
@@ -50,8 +57,26 @@ jobs:
 
       - name: Install deps and restart service
         run: |
-          ssh -o StrictHostKeyChecking=accept-new -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \
-            "source ~/.nvm/nvm.sh && cd '$DEPLOY_PATH' && nvm install && mkdir -p ~/bin && ln -sfn \"\$(readlink -f \"\$(nvm which current)\")\" ~/bin/tt-node && npm ci --omit=dev && sudo systemctl restart '$SERVICE_NAME'"
+          ssh -o StrictHostKeyChecking=accept-new -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" bash -s -- "$DEPLOY_PATH" "$SERVICE_NAME" <<'REMOTE'
+            set -euo pipefail
+            deploy_path="$1"; svc="$2"
+            source ~/.nvm/nvm.sh
+            cd "$deploy_path"
+            nvm install
+            mkdir -p ~/bin
+            ln -sfn "$(readlink -f "$(nvm which current)")" ~/bin/tt-node
+            # Rebuild deps only when the lockfile or node version changed (native
+            # better-sqlite3 compile is slow); node_modules persists across deploys.
+            stamp=".deploy-deps-stamp"
+            want="$(node --version)-$(sha256sum package-lock.json | cut -d' ' -f1)"
+            if [ ! -d node_modules ] || [ "$(cat "$stamp" 2>/dev/null)" != "$want" ]; then
+              npm ci --omit=dev
+              echo "$want" > "$stamp"
+            else
+              echo "deps unchanged; skipping npm ci"
+            fi
+            sudo systemctl restart "$svc"
+          REMOTE
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
