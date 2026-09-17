@@ -13,6 +13,7 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 
 export function createApp({ db, hub }) {
   const app = express();
+  app.set('trust proxy', 1); // behind nginx; honor X-Forwarded-Proto for secure cookies
   app.set('view engine', 'ejs');
   app.set('views', path.join(dir, 'views'));
   app.use(express.urlencoded({ extended: false }));
