@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from '../src/db.js';
 import { createClient, createTask, createTag, getTag, listTasks, listTags,
-  archiveTask, effectiveRateCents } from '../src/catalog.js';
+  archiveTask, effectiveRateCents, getClient, updateClient, deleteClient,
+  listTasksByClient, updateTask } from '../src/catalog.js';
 import { TASK_COLORS, TAG_COLORS } from '../src/colors.js';
 
 test('create and list tasks (archived hidden)', () => {
@@ -57,4 +58,48 @@ test('explicit color overrides palette', () => {
   const db = openDb(':memory:');
   const id = createTag(db, { name: 'x', color: '#123456' });
   assert.equal(getTag(db, id).color, '#123456');
+});
+
+test('client create, get, update', () => {
+  const db = openDb(':memory:');
+  const id = createClient(db, { name: 'Acme' });
+  updateClient(db, id, { name: 'Acme Inc', defaultRateCents: 12000, currency: 'EUR', address: '1 St' });
+  const c = getClient(db, id);
+  assert.equal(c.name, 'Acme Inc');
+  assert.equal(c.default_rate_cents, 12000);
+  assert.equal(c.currency, 'EUR');
+  assert.equal(c.address, '1 St');
+});
+
+test('deleting a client moves its tasks to No client', () => {
+  const db = openDb(':memory:');
+  const c = createClient(db, { name: 'Acme' });
+  const t = createTask(db, { name: 'Job', clientId: c });
+  deleteClient(db, c);
+  assert.equal(getClient(db, c), undefined);
+  const groups = listTasksByClient(db);
+  const none = groups.find(g => g.client === null);
+  assert.ok(none.tasks.some(x => x.id === t));
+});
+
+test('listTasksByClient groups tasks, No client last', () => {
+  const db = openDb(':memory:');
+  const b = createClient(db, { name: 'Beta' });
+  const a = createClient(db, { name: 'Alpha' });
+  createTask(db, { name: 'Loose' });
+  createTask(db, { name: 'A-work', clientId: a });
+  const groups = listTasksByClient(db);
+  assert.deepEqual(groups.map(g => g.client ? g.client.name : 'No client'),
+    ['Alpha', 'Beta', 'No client']);
+  assert.equal(groups[0].tasks[0].name, 'A-work');
+  assert.equal(groups[2].tasks[0].name, 'Loose');
+});
+
+test('updateTask reassigns a task to another client', () => {
+  const db = openDb(':memory:');
+  const a = createClient(db, { name: 'A' });
+  const t = createTask(db, { name: 'Job', clientId: a });
+  updateTask(db, t, { name: 'Job', color: '#111111', clientId: null });
+  const none = listTasksByClient(db).find(g => g.client === null);
+  assert.ok(none.tasks.some(x => x.id === t));
 });

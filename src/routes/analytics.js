@@ -1,7 +1,7 @@
 import express from 'express';
 import { buildReport, periodOf, listPeriods, dayStartUTC } from '../analytics.js';
 import { listSessions, decorateSession } from '../sessions.js';
-import { listTasks, listTags } from '../catalog.js';
+import { listTasks, listTags, listClients, getClient } from '../catalog.js';
 import { getSettings } from '../settings.js';
 import { sessionsToCsv } from '../csv.js';
 import { fmtDuration, fmtMoney } from './tracking.js';
@@ -26,7 +26,8 @@ export function analyticsRouter(db) {
     periods.forEach(x => { x.selected = x.ps === period.start; });
     const p = { by, metric, chart, type, ps: period.start, from: period.from, to: period.to, unit: period.unit };
     const report = buildReport(db, { from: period.from, to: period.to, unit: period.unit, by, metric, rounding: rounding() });
-    return { p, report, periods, rangeLabel: period.label, tasks: listTasks(db), tags: listTags(db), fmtDuration, fmtMoney };
+    return { p, report, periods, rangeLabel: period.label,
+      tasks: listTasks(db), tags: listTags(db), clients: listClients(db), fmtDuration, fmtMoney };
   }
 
   r.get('/analytics', (req, res) =>
@@ -41,9 +42,16 @@ export function analyticsRouter(db) {
     const filter = { from: dayStartUTC(period.from), to: dayStartUTC(period.to) + DAY - 1 };
     if (req.query.taskId) filter.taskId = Number(req.query.taskId);
     if (req.query.tagId) filter.tagId = Number(req.query.tagId);
+    if (req.query.clientId) filter.clientId = Number(req.query.clientId);
+    const clientCache = new Map();
+    const clientOf = (id) => {
+      if (!id) return null;
+      if (!clientCache.has(id)) clientCache.set(id, getClient(db, id));
+      return clientCache.get(id);
+    };
     const rows = listSessions(db, filter)
       .filter(s => s.end_utc != null)
-      .map(s => decorateSession(db, s, Date.now(), rounding()));
+      .map(s => ({ ...decorateSession(db, s, Date.now(), rounding()), client: clientOf(s.task && s.task.client_id) }));
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="time-export.csv"');
     res.send(sessionsToCsv(rows));

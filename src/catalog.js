@@ -67,12 +67,37 @@ export function listTags(db) {
 export function listClients(db) {
   return db.prepare('SELECT * FROM client WHERE archived = 0 ORDER BY name').all();
 }
+export function getClient(db, id) {
+  return db.prepare('SELECT * FROM client WHERE id = ?').get(id);
+}
+export function updateClient(db, id, { name, defaultRateCents = null, currency = 'USD', address = '' }) {
+  db.prepare('UPDATE client SET name = ?, default_rate_cents = ?, currency = ?, address = ? WHERE id = ?')
+    .run(name, defaultRateCents, currency, address, id);
+}
+// Hard delete; task.client_id FK is ON DELETE SET NULL, so tasks fall to No client.
+export function deleteClient(db, id) {
+  db.prepare('DELETE FROM client WHERE id = ?').run(id);
+}
 
-export function updateTask(db, id, { name, details = '', color, hourlyRateCents = null, isDefault = false }) {
+// All tasks grouped by client (clients by name, No client last).
+export function listTasksByClient(db) {
+  const clients = listClients(db);
+  const buckets = new Map(clients.map(c => [c.id, []]));
+  const none = [];
+  for (const t of listAllTasks(db)) {
+    if (t.client_id != null && buckets.has(t.client_id)) buckets.get(t.client_id).push(t);
+    else none.push(t);
+  }
+  const groups = clients.map(c => ({ client: c, tasks: buckets.get(c.id) }));
+  groups.push({ client: null, tasks: none });
+  return groups;
+}
+
+export function updateTask(db, id, { name, details = '', color, hourlyRateCents = null, isDefault = false, clientId = null }) {
   const tx = db.transaction(() => {
     if (isDefault) db.prepare('UPDATE task SET is_default = 0').run();
-    db.prepare('UPDATE task SET name = ?, details = ?, color = ?, hourly_rate_cents = ?, is_default = ? WHERE id = ?')
-      .run(name, details, color, hourlyRateCents, isDefault ? 1 : 0, id);
+    db.prepare('UPDATE task SET name = ?, details = ?, color = ?, hourly_rate_cents = ?, is_default = ?, client_id = ? WHERE id = ?')
+      .run(name, details, color, hourlyRateCents, isDefault ? 1 : 0, clientId, id);
   });
   tx();
 }

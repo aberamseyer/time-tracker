@@ -1,0 +1,18 @@
+<form class="client-group editing" hx-post="/clients/<%= c.id %>" hx-target="this" hx-swap="outerHTML">
+  <div class="ce-grid">
+    <label>Client<input name="name" value="<%= c.name %>" required></label>
+    <div class="te-row">
+      <label>Default rate<input type="number" step="0.01" name="rate" placeholder="0"
+             value="<%= c.default_rate_cents != null ? (c.default_rate_cents / 100).toFixed(2) : '' %>"></label>
+      <label>Currency<input name="currency" value="<%= c.currency %>" maxlength="3"></label>
+    </div>
+    <label>Address<textarea name="address" placeholder="Address"><%= c.address %></textarea></label>
+  </div>
+  <div class="actions">
+    <button type="submit">Save</button>
+    <button type="button" hx-get="/clients/<%= c.id %>/group" hx-target="closest .client-group" hx-swap="outerHTML">Cancel</button>
+    <button type="button" class="danger" hx-post="/clients/<%= c.id %>/delete"
+            hx-target="#task-list" hx-swap="outerHTML"
+            hx-confirm="Delete this client? Its tasks move to No client.">Delete</button>
+  </div>
+</form>

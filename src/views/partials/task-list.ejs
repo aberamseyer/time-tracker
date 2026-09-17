@@ -1,7 +1,5 @@
 <div id="task-list" class="task-list">
-  <% if (!tasks.length) { %>
-    <p class="empty">No tasks yet. Add one above.</p>
-  <% } else { tasks.forEach(t => { %>
-    <%- include('task-row', { t }) %>
-  <% }) } %>
+  <% groups.forEach(group => { %>
+    <%- include('client-group', { group }) %>
+  <% }) %>
 </div>

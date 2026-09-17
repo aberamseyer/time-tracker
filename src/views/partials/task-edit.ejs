@@ -1,7 +1,15 @@
-<form class="task-row editing" id="t-<%= task.id %>" hx-post="/tasks/<%= task.id %>" hx-target="this" hx-swap="outerHTML">
+<form class="task-row editing" id="t-<%= task.id %>" hx-post="/tasks/<%= task.id %>" hx-target="#task-list" hx-swap="outerHTML">
   <div class="te-grid">
     <label>Name<input name="name" value="<%= task.name %>" required></label>
     <label>Details<textarea name="details" placeholder="Details"><%= task.details %></textarea></label>
+    <label>Client
+      <select name="clientId">
+        <option value="" <%= task.client_id == null ? 'selected' : '' %>>No client</option>
+        <% clients.forEach(c => { %>
+          <option value="<%= c.id %>" <%= task.client_id === c.id ? 'selected' : '' %>><%= c.name %></option>
+        <% }) %>
+      </select>
+    </label>
     <div class="te-row">
       <label>Color<input type="color" name="color" value="<%= task.color %>"></label>
       <label>Hourly rate<input type="number" step="0.01" name="rate" placeholder="0"

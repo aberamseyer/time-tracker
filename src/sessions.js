@@ -61,6 +61,10 @@ export function listSessions(db, filter = {}) {
   if (filter.taskId) { where.push('s.task_id = ?'); vals.push(filter.taskId); }
   if (filter.unlabelled) where.push("s.description = ''");
   if (filter.uncategorized) where.push('s.task_id IS NULL');
+  if (filter.clientId) {
+    where.push('s.task_id IN (SELECT id FROM task WHERE client_id = ?)');
+    vals.push(filter.clientId);
+  }
   if (filter.tagId) {
     where.push('EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id AND st.tag_id = ?)');
     vals.push(filter.tagId);

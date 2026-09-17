@@ -1,9 +1,9 @@
 <%
-  const list = include('partials/task-list', { tasks });
+  const list = include('partials/task-list', { groups });
   const body = `
     <div class="tasks-head">
       <h1>Tasks</h1>
-      <button class="add-task" hx-post="/tasks" hx-target="#task-list" hx-swap="outerHTML">+ New task</button>
+      <button class="add-task" hx-post="/clients" hx-target="#task-list" hx-swap="outerHTML">+ New client</button>
     </div>
     ${list}`;
 %>

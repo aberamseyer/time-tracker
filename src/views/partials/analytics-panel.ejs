@@ -69,6 +69,9 @@
   <form class="an-export" method="get" action="/export.csv">
     <input type="hidden" name="type" value="<%= p.type %>">
     <input type="hidden" name="ps" value="<%= p.ps %>">
+    <select name="clientId"><option value="">All clients</option>
+      <% clients.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+    </select>
     <select name="taskId"><option value="">All tasks</option>
       <% tasks.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
     </select>

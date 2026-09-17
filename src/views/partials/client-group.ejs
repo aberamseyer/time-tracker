@@ -1,0 +1,25 @@
+<section class="client-group" x-data="{ open: true }">
+  <header>
+    <span class="chev" @click="open = !open" x-text="open ? '▾' : '▸'"></span>
+    <span class="cname" @click="open = !open"><%= group.client ? group.client.name : 'No client' %></span>
+    <% if (group.client && group.client.default_rate_cents != null) { %>
+      <span class="crate"><%= group.client.currency %> <%= (group.client.default_rate_cents / 100).toFixed(0) %>/h</span>
+    <% } %>
+    <div class="cg-actions">
+      <% if (group.client) { %>
+        <button type="button" title="Edit client" class="cg-edit"
+                hx-get="/clients/<%= group.client.id %>/edit" hx-target="closest .client-group" hx-swap="outerHTML">✎</button>
+      <% } %>
+      <button type="button" class="cg-add" title="Add task" hx-post="/tasks"
+              hx-vals='{"clientId": "<%= group.client ? group.client.id : '' %>"}'
+              hx-target="#task-list" hx-swap="outerHTML">+ Task</button>
+    </div>
+  </header>
+  <div class="cg-tasks" x-show="open">
+    <% if (!group.tasks.length) { %>
+      <p class="empty">No tasks yet.</p>
+    <% } else { group.tasks.forEach(t => { %>
+      <%- include('task-row', { t }) %>
+    <% }) } %>
+  </div>
+</section>

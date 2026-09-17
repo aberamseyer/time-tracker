@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { makeApp, login } from './helpers.js';
-import { listAllTasks, getTask, createTask, createTag, defaultTask, taskTagIds } from '../src/catalog.js';
+import { listAllTasks, getTask, createTask, createTag, defaultTask, taskTagIds,
+  listClients, getClient, createClient } from '../src/catalog.js';
 import { startTimer, getActiveSession } from '../src/timer.js';
 import { getSession } from '../src/sessions.js';
 
@@ -62,6 +63,55 @@ test('default tags add and remove', async () => {
   assert.deepEqual(taskTagIds(db, t), [tag]);
   await agent.post(`/tasks/${t}/tags/${tag}/delete`);
   assert.deepEqual(taskTagIds(db, t), []);
+});
+
+test('create client, add task to it, then reassign to No client', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+
+  await agent.post('/clients');                       // creates "New client"
+  const c = listClients(db).find(x => x.name === 'New client');
+  assert.ok(c);
+
+  await agent.post(`/clients/${c.id}`).type('form')
+    .send({ name: 'Acme', rate: '120', currency: 'EUR', address: '1 Main' });
+  const saved = getClient(db, c.id);
+  assert.equal(saved.name, 'Acme');
+  assert.equal(saved.default_rate_cents, 12000);
+  assert.equal(saved.currency, 'EUR');
+
+  const res = await agent.post('/tasks').type('form').send({ clientId: String(c.id) });
+  assert.match(res.text, /id="task-list"/);
+  const t = listAllTasks(db).find(x => x.name === 'New task');
+  assert.equal(t.client_id, c.id);
+
+  await agent.post(`/tasks/${t.id}`).type('form').send({ name: 'Job', clientId: '' });
+  assert.equal(getTask(db, t.id).client_id, null);
+});
+
+test('deleting a client via route keeps its tasks under No client', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  const c = createClient(db, { name: 'Beta' });
+  const t = createTask(db, { name: 'Job', clientId: c });
+  const res = await agent.post(`/clients/${c}/delete`);
+  assert.equal(res.status, 200);
+  assert.equal(getClient(db, c), undefined);
+  assert.equal(getTask(db, t).client_id, null);
+});
+
+test('tasks page groups by client, No client last', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  const c = createClient(db, { name: 'Acme' });
+  createTask(db, { name: 'Grouped', clientId: c });
+  createTask(db, { name: 'Loose' });
+  const res = await agent.get('/tasks');
+  assert.ok(res.text.indexOf('Acme') < res.text.indexOf('No client'));
+  assert.match(res.text, /Grouped/);
 });
 
 test('starting the timer applies default task and its tags', () => {

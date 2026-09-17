@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import { makeApp, login } from './helpers.js';
 import { createSession } from '../src/sessions.js';
-import { createTask } from '../src/catalog.js';
+import { createTask, createClient } from '../src/catalog.js';
 
 test('analytics page renders', async () => {
   const { app, db } = makeApp();
@@ -35,4 +35,22 @@ test('csv export downloads with filters', async () => {
   assert.match(res.headers['content-type'], /text\/csv/);
   assert.match(res.headers['content-disposition'], /attachment/);
   assert.ok(res.text.includes('Work'));
+});
+
+test('csv export filters by client and names it in a Client column', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  const acme = createClient(db, { name: 'Acme' });
+  const paid = createTask(db, { name: 'Paid', clientId: acme });
+  const other = createTask(db, { name: 'Other' });
+  const now = Date.now();
+  createSession(db, { description: 'BillMe', taskId: paid, startUtc: now - 3600000, endUtc: now });
+  createSession(db, { description: 'Ignore', taskId: other, startUtc: now - 7200000, endUtc: now - 3600000 });
+  const res = await agent.get(`/export.csv?clientId=${acme}`);
+  assert.equal(res.status, 200);
+  assert.match(res.text.split('\n')[0], /^Date,.*,Client,Task,/);
+  assert.ok(res.text.includes('BillMe'));
+  assert.ok(res.text.includes('Acme'));
+  assert.ok(!res.text.includes('Ignore'));
 });

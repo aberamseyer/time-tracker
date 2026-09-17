@@ -5,7 +5,7 @@ function q(v) {
 
 // Decorated, completed sessions -> RFC-4180 CSV. Times are UTC, matching the app.
 export function sessionsToCsv(rows) {
-  const header = ['Date', 'Start', 'End', 'Description', 'Details', 'Task', 'Tags', 'Duration (min)', 'Earnings'];
+  const header = ['Date', 'Start', 'End', 'Description', 'Details', 'Client', 'Task', 'Tags', 'Duration (min)', 'Earnings'];
   const lines = [header.join(',')];
   for (const s of rows) {
     const start = new Date(s.start_utc).toISOString();
@@ -13,6 +13,7 @@ export function sessionsToCsv(rows) {
     lines.push([
       start.slice(0, 10), start.slice(11, 16), end.slice(11, 16),
       s.description, s.details,
+      s.client ? s.client.name : '',
       s.task ? s.task.name : '',
       s.tags.map(t => t.name).join('; '),
       Math.round(s.roundedMs / 60000),

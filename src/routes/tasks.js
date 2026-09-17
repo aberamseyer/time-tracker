@@ -1,7 +1,8 @@
 import express from 'express';
 import {
-  listAllTasks, listTags, createTask, updateTask, getTask, deleteTask,
-  setTaskHidden, addTaskTag, removeTaskTag,
+  listTags, createTask, updateTask, getTask, deleteTask, setTaskHidden,
+  addTaskTag, removeTaskTag, listTasksByClient,
+  listClients, createClient, getClient, updateClient, deleteClient,
 } from '../catalog.js';
 
 function rateCents(v) { return v ? Math.round(Number(v) * 100) : null; }
@@ -9,15 +10,17 @@ function rateCents(v) { return v ? Math.round(Number(v) * 100) : null; }
 export function tasksRouter(db, hub) {
   const r = express.Router();
 
-  const listCtx = () => ({ tasks: listAllTasks(db).map(t => getTask(db, t.id)) });
-  const editCtx = (id) => ({ task: getTask(db, id), tags: listTags(db) });
+  const listCtx = () => ({ groups: listTasksByClient(db) });
+  const editCtx = (id) => ({ task: getTask(db, id), tags: listTags(db), clients: listClients(db) });
   const tagsCtx = (id) => ({ task: getTask(db, id), tags: listTags(db) });
+  const groupOf = (id) => listTasksByClient(db).find(g => g.client && g.client.id === id)
+    || { client: getClient(db, id), tasks: [] };
 
   r.get('/tasks', (req, res) =>
     res.render('tasks', { title: 'Tasks', nav: 'tasks', ...listCtx() }));
 
   r.post('/tasks', (req, res) => {
-    createTask(db, { name: 'New task' });
+    createTask(db, { name: 'New task', clientId: req.body.clientId ? Number(req.body.clientId) : null });
     hub.broadcast('changed');
     res.render('partials/task-list', listCtx());
   });
@@ -34,10 +37,11 @@ export function tasksRouter(db, hub) {
     updateTask(db, id, {
       name, details: req.body.details || '', color: req.body.color || '#3b82f6',
       hourlyRateCents: rateCents(req.body.rate), isDefault: !!req.body.isDefault,
+      clientId: req.body.clientId ? Number(req.body.clientId) : null,
     });
     setTaskHidden(db, id, !!req.body.hidden);
     hub.broadcast('changed');
-    res.render('partials/task-row', { t: getTask(db, id) });
+    res.render('partials/task-list', listCtx());
   });
 
   r.post('/tasks/:id/hide', (req, res) => {
@@ -66,6 +70,36 @@ export function tasksRouter(db, hub) {
     removeTaskTag(db, id, Number(req.params.tagId));
     hub.broadcast('changed');
     res.render('partials/task-tags', tagsCtx(id));
+  });
+
+  r.post('/clients', (req, res) => {
+    createClient(db, { name: 'New client' });
+    hub.broadcast('changed');
+    res.render('partials/task-list', listCtx());
+  });
+
+  r.get('/clients/:id/edit', (req, res) =>
+    res.render('partials/client-edit', { c: getClient(db, Number(req.params.id)) }));
+
+  r.get('/clients/:id/group', (req, res) =>
+    res.render('partials/client-group', { group: groupOf(Number(req.params.id)) }));
+
+  r.post('/clients/:id', (req, res) => {
+    const id = Number(req.params.id);
+    updateClient(db, id, {
+      name: (req.body.name || '').trim() || 'Client',
+      defaultRateCents: rateCents(req.body.rate),
+      currency: (req.body.currency || 'USD').trim() || 'USD',
+      address: req.body.address || '',
+    });
+    hub.broadcast('changed');
+    res.render('partials/client-group', { group: groupOf(id) });
+  });
+
+  r.post('/clients/:id/delete', (req, res) => {
+    deleteClient(db, Number(req.params.id));
+    hub.broadcast('changed');
+    res.render('partials/task-list', listCtx());
   });
 
   return r;
