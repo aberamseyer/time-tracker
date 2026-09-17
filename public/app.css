@@ -29,6 +29,7 @@ fieldset { border:0; padding:0; margin:0; }
 legend { color:var(--muted); font-size:.9rem; margin-bottom:.4rem; }
 .err { color:var(--red); }
 .empty { color:var(--muted); text-align:center; padding:2rem 0; }
+.load-more { min-height:1px; }
 
 /* Cards */
 .timer-card, .day-group, .session-item, .session-item.editing, .login { background:var(--card);

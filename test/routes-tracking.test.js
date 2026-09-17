@@ -5,6 +5,7 @@ import { makeApp, login } from './helpers.js';
 import { getActiveSession } from '../src/timer.js';
 import { getSession, createSession } from '../src/sessions.js';
 import { createTask } from '../src/catalog.js';
+import { updateSettings } from '../src/settings.js';
 
 test('start creates a running session and broadcasts', async () => {
   const events = [];
@@ -40,6 +41,32 @@ test('edit while running updates description and task', async () => {
   const s = getSession(db, id);
   assert.equal(s.description, 'Live edit');
   assert.equal(s.task_id, t);
+});
+
+test('active session is excluded from the list', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  createSession(db, { description: 'DONEONE', startUtc: 1, endUtc: 2 });
+  createSession(db, { description: 'ACTIVEONE', startUtc: Date.now(), endUtc: null });
+  const res = await agent.get('/partials/tracking-list');
+  assert.match(res.text, /DONEONE/);
+  assert.doesNotMatch(res.text, /ACTIVEONE/);
+});
+
+test('monthly grouping paginates one period per page', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  updateSettings(db, { sessionGrouping: 'month' });
+  createSession(db, { description: 'SEPWORK', startUtc: Date.parse('2026-09-15T10:00Z'), endUtc: Date.parse('2026-09-15T11:00Z') });
+  createSession(db, { description: 'AUGWORK', startUtc: Date.parse('2026-08-15T10:00Z'), endUtc: Date.parse('2026-08-15T11:00Z') });
+  const first = await agent.get('/partials/tracking-list');
+  assert.match(first.text, /SEPWORK/);
+  assert.doesNotMatch(first.text, /AUGWORK/);
+  assert.match(first.text, /offset=1/);            // load-more sentinel
+  const second = await agent.get('/partials/tracking-list?offset=1');
+  assert.match(second.text, /AUGWORK/);
 });
 
 test('naming running work autocompletes empty fields from history', async () => {

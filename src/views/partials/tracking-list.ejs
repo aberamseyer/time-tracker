@@ -1,5 +1,9 @@
 <% if (!groups.length) { %>
-  <p class="empty">No sessions yet. Press “Start work”.</p>
+  <% if (showEmpty) { %><p class="empty">No sessions yet. Press “Start work”.</p><% } %>
 <% } else { groups.forEach(g => { %>
   <%- include('day-group', { g, fmtDuration, fmtMoney }) %>
 <% }) } %>
+<% if (hasMore) { %>
+  <div class="load-more" hx-get="/partials/tracking-list?offset=<%= nextOffset %>"
+       hx-include=".filters" hx-trigger="revealed" hx-swap="outerHTML"></div>
+<% } %>

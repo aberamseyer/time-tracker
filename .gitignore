@@ -4,3 +4,5 @@ node_modules/
 *.db
 .env
 HANDOFF.md
+.DS_Store
+.serena

@@ -12,12 +12,16 @@ export function settingsRouter(db, hub) {
 
   r.post('/settings', (req, res) => {
     try {
-      updateSettings(db, { roundingMinutes: req.body.roundingMinutes });
+      updateSettings(db, {
+        roundingMinutes: req.body.roundingMinutes,
+        sessionGrouping: req.body.sessionGrouping,
+        weekStart: req.body.weekStart,
+      });
       hub.broadcast('changed');
       res.redirect('/settings');
     } catch {
       res.render('settings', {
-        title: 'Settings', nav: 'settings', settings: getSettings(db), tags: listTags(db), error: 'Invalid rounding value',
+        title: 'Settings', nav: 'settings', settings: getSettings(db), tags: listTags(db), error: 'Invalid setting value',
       });
     }
   });

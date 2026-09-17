@@ -56,6 +56,7 @@ export function getSession(db, id) {
 
 export function listSessions(db, filter = {}) {
   const where = [], vals = [];
+  if (filter.completedOnly) where.push('s.end_utc IS NOT NULL');
   if (filter.q) { where.push('s.description LIKE ?'); vals.push('%' + filter.q + '%'); }
   if (filter.taskId) { where.push('s.task_id = ?'); vals.push(filter.taskId); }
   if (filter.unlabelled) where.push("s.description = ''");

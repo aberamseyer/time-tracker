@@ -3,6 +3,10 @@ import { startTimer, startTimerFrom, pauseTimer, stopTimer, resumeTimer, timerSt
 import { listSessions, decorateSession, updateSession, setSessionTags, distinctDescriptions, latestByDescription } from '../sessions.js';
 import { listTasks, listTags, taskTagIds } from '../catalog.js';
 import { getSettings } from '../settings.js';
+import { dayStartUTC, periodOf } from '../analytics.js';
+
+// Periods loaded per infinite-scroll page.
+const PAGE = 1;
 
 export function fmtDuration(ms) {
   const totalMin = Math.round(ms / 60000);
@@ -22,26 +26,29 @@ export function escapeHtml(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function dayKey(ms) {
-  const d = new Date(ms);
-  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
-}
 function dayLabel(ms) {
   return new Date(ms).toLocaleDateString('en-US', {
     timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
   });
 }
 
-export function groupByDay(db, sessions, now, rounding) {
+// Bucket start and header label for a session under the chosen grouping.
+function bucketOf(unit, ms, weekStart) {
+  if (unit === 'day') { const start = dayStartUTC(ms); return { start, label: dayLabel(start) }; }
+  const p = periodOf(unit, ms, weekStart);
+  return { start: p.start, label: unit === 'week' ? `Week of ${p.label}` : p.label };
+}
+
+export function groupSessions(db, sessions, now, rounding, unit = 'day', weekStart = 1) {
   const groups = new Map();
   for (const s of sessions) {
     const d = decorateSession(db, s, now, rounding);
     const anchor = s.start_utc ?? s.created_at;
-    const key = dayKey(anchor);
-    if (!groups.has(key)) {
-      groups.set(key, { key, anchor, label: dayLabel(anchor), sessions: [], totalMs: 0, totalCents: 0 });
+    const b = bucketOf(unit, anchor, weekStart);
+    if (!groups.has(b.start)) {
+      groups.set(b.start, { key: String(b.start), anchor: b.start, label: b.label, sessions: [], totalMs: 0, totalCents: 0 });
     }
-    const g = groups.get(key);
+    const g = groups.get(b.start);
     g.sessions.push(d);
     g.totalMs += d.roundedMs;
     g.totalCents += d.earningsCents;
@@ -52,6 +59,24 @@ export function groupByDay(db, sessions, now, rounding) {
 export function trackingRouter(db, hub) {
   const r = express.Router();
   const rounding = () => getSettings(db).rounding_minutes;
+  const grouping = () => { const s = getSettings(db); return { unit: s.session_grouping || 'day', weekStart: s.week_start ?? 1 }; };
+
+  // All completed sessions for the query, grouped by the chosen period.
+  function allGroups(q) {
+    const g = grouping();
+    return groupSessions(db, listSessions(db, filterFrom(q)), Date.now(), rounding(), g.unit, g.weekStart);
+  }
+  function pageCtx(q) {
+    const groups = allGroups(q);
+    const offset = Math.max(0, Number(q.offset) || 0);
+    return {
+      groups: groups.slice(offset, offset + PAGE),
+      hasMore: groups.length > offset + PAGE,
+      nextOffset: offset + PAGE,
+      showEmpty: offset === 0,
+      fmtDuration, fmtMoney,
+    };
+  }
 
   function activeCtx() {
     return { state: timerState(db, Date.now()), tasks: listTasks(db), tags: listTags(db), fmtDuration };
@@ -62,7 +87,7 @@ export function trackingRouter(db, hub) {
   }
   function filterFrom(q) {
     return {
-      from: Date.now() - 14 * 24 * 3600 * 1000,
+      completedOnly: true,
       q: q.q || undefined,
       taskIds: idsFrom(q.taskId),
       tagIds: idsFrom(q.tagId),
@@ -78,20 +103,17 @@ export function trackingRouter(db, hub) {
   }
 
   r.get('/', (req, res) => {
-    const groups = groupByDay(db, listSessions(db, filterFrom(req.query)), Date.now(), rounding());
     res.render('tracking', {
       title: 'Time tracking', nav: 'tracking',
-      ...activeCtx(), ...filterCtx(req.query), groups, fmtMoney, descriptions: distinctDescriptions(db, '', 50),
+      ...activeCtx(), ...filterCtx(req.query), ...pageCtx(req.query), fmtMoney, descriptions: distinctDescriptions(db, '', 50),
     });
   });
 
   r.get('/partials/active-timer', (req, res) =>
     res.render('partials/active-timer', activeCtx()));
 
-  r.get('/partials/tracking-list', (req, res) => {
-    const groups = groupByDay(db, listSessions(db, filterFrom(req.query)), Date.now(), rounding());
-    res.render('partials/tracking-list', { groups, fmtDuration, fmtMoney });
-  });
+  r.get('/partials/tracking-list', (req, res) =>
+    res.render('partials/tracking-list', pageCtx(req.query)));
 
   function afterMutation(res) {
     hub.broadcast('changed');

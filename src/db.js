@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS settings (
   currency TEXT NOT NULL DEFAULT 'USD',
   week_start INTEGER NOT NULL DEFAULT 1,
   timezone TEXT NOT NULL DEFAULT 'UTC',
-  rounding_minutes INTEGER NOT NULL DEFAULT 0
+  rounding_minutes INTEGER NOT NULL DEFAULT 0,
+  session_grouping TEXT NOT NULL DEFAULT 'day'
 );
 `;
 
@@ -72,6 +73,7 @@ export function migrate(db) {
   // Columns added after v2; ALTER is a no-op when they already exist.
   addColumn(db, 'task', 'details', "TEXT NOT NULL DEFAULT ''");
   addColumn(db, 'task', 'is_default', 'INTEGER NOT NULL DEFAULT 0');
+  addColumn(db, 'settings', 'session_grouping', "TEXT NOT NULL DEFAULT 'day'");
 }
 
 export function seedSettings(db) {

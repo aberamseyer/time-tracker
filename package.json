@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
-    "seed": "node scripts/seed-user.js"
+    "seed": "node scripts/seed-user.js",
+    "seed:sample": "node scripts/seed-sample.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
