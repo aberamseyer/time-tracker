@@ -1,0 +1,89 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency: deploy-production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir --parents ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${SSH_PORT:-22}" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+
+      - name: Rsync code to VPS
+        run: |
+          rsync --archive --compress --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'node_modules' \
+            --exclude '.env' \
+            --exclude '*.sqlite' \
+            --exclude '*.sqlite-*' \
+            --exclude '*.db' \
+            -e "ssh -i ~/.ssh/deploy_key -p ${SSH_PORT:-22}" \
+            ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Install deps and restart service
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \
+            "cd '$DEPLOY_PATH' && npm ci --omit=dev && sudo systemctl restart '$SERVICE_NAME'"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
+
+      - name: Health check
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" bash -s -- "$HEALTH_URL" "$SERVICE_NAME" <<'REMOTE'
+            set -euo pipefail
+            url="$1"; svc="$2"
+            for attempt in $(seq 1 10); do
+              code=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 5 "$url" || echo 000)
+              if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+                echo "healthy: $url returned $code"
+                exit 0
+              fi
+              echo "attempt $attempt: $url returned $code, retrying..."
+              sleep 3
+            done
+            echo "health check failed; recent service status:"
+            systemctl status "$svc" --no-pager --lines 20 || true
+            exit 1
+          REMOTE
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
