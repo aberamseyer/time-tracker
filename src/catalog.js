@@ -79,18 +79,29 @@ export function deleteClient(db, id) {
   db.prepare('DELETE FROM client WHERE id = ?').run(id);
 }
 
-// All tasks grouped by client (clients by name, No client last).
-export function listTasksByClient(db) {
+// Group a task list by client (clients by name, No client last).
+function groupByClient(db, tasks, { keepEmpty = true } = {}) {
   const clients = listClients(db);
   const buckets = new Map(clients.map(c => [c.id, []]));
   const none = [];
-  for (const t of listAllTasks(db)) {
+  for (const t of tasks) {
     if (t.client_id != null && buckets.has(t.client_id)) buckets.get(t.client_id).push(t);
     else none.push(t);
   }
-  const groups = clients.map(c => ({ client: c, tasks: buckets.get(c.id) }));
-  groups.push({ client: null, tasks: none });
+  const groups = clients.map(c => ({ client: c, tasks: buckets.get(c.id) }))
+    .filter(g => keepEmpty || g.tasks.length);
+  if (keepEmpty || none.length) groups.push({ client: null, tasks: none });
   return groups;
+}
+
+// All tasks (incl. archived) grouped by client — for the Tasks manager page.
+export function listTasksByClient(db) {
+  return groupByClient(db, listAllTasks(db));
+}
+
+// Active tasks grouped by client, empty clients omitted — for task pickers.
+export function listActiveTasksByClient(db) {
+  return groupByClient(db, listTasks(db), { keepEmpty: false });
 }
 
 export function updateTask(db, id, { name, details = '', color, hourlyRateCents = null, isDefault = false, clientId = null }) {

@@ -1,8 +1,8 @@
 <%
   function escapeHtmlAttr(str){return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-  const active = include('partials/active-timer', { state, tasks, tags, fmtDuration });
+  const active = include('partials/active-timer', { state, taskGroups, tags, fmtDuration });
   const list = include('partials/tracking-list', { groups, hasMore, nextOffset, showEmpty, fmtDuration, fmtMoney });
-  const manualAdd = include('partials/manual-add', { tasks, tags, error: null });
+  const manualAdd = include('partials/manual-add', { taskGroups, tags, error: null });
   const options = descriptions.map(d => `<option value="${escapeHtmlAttr(d)}">`).join('');
   const taskChecked = (id) => selTasks.length === 0 || selTasks.includes(id);
   const tagChecked = (id) => selTags.length === 0 || selTags.includes(id);

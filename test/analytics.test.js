@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { makeTestDb } from './helpers.js';
 import { buildReport, periodOf, listPeriods } from '../src/analytics.js';
 import { createSession, setSessionTags } from '../src/sessions.js';
-import { createTask, createTag } from '../src/catalog.js';
+import { createTask, createTag, createClient } from '../src/catalog.js';
 
 const DAY = 86400000;
 const day = (n) => Date.UTC(2026, 0, 1) + n * DAY; // Jan 1 2026 + n days
@@ -38,6 +38,19 @@ test('running sessions are excluded', () => {
   createSession(db, { startUtc: day(0), endUtc: null });
   const rep = buildReport(db, { from: day(0), to: day(0), by: 'task', metric: 'time' });
   assert.equal(rep.grandTotal, 0);
+});
+
+test('report filters by client and by task ids', () => {
+  const db = makeTestDb();
+  const acme = createClient(db, { name: 'Acme' });
+  const t1 = createTask(db, { name: 'Billed', clientId: acme });
+  const t2 = createTask(db, { name: 'Loose' });
+  createSession(db, { taskId: t1, startUtc: day(0), endUtc: day(0) + 3600000 });
+  createSession(db, { taskId: t2, startUtc: day(0), endUtc: day(0) + 3600000 });
+  const byClient = buildReport(db, { from: day(0), to: day(0), by: 'task', metric: 'time', clientId: acme });
+  assert.deepEqual(byClient.series.map(s => s.name), ['Billed']);
+  const byTask = buildReport(db, { from: day(0), to: day(0), by: 'task', metric: 'time', taskIds: [t2] });
+  assert.deepEqual(byTask.series.map(s => s.name), ['Loose']);
 });
 
 test('earnings metric uses task rate', () => {

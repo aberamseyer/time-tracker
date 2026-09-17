@@ -1,7 +1,7 @@
 import express from 'express';
 import { getSession, updateSession, setSessionTags,
   createSession, deleteSession, decorateSession, latestByDescription } from '../sessions.js';
-import { listTasks, listTags, createTask, createTag, getTag, taskTagIds } from '../catalog.js';
+import { listActiveTasksByClient, listTags, createTask, createTag, getTag, taskTagIds } from '../catalog.js';
 import { getSettings } from '../settings.js';
 import { fmtDuration } from './tracking.js';
 
@@ -26,12 +26,12 @@ export function sessionsRouter(db, hub) {
   r.get('/sessions/template', (req, res) => {
     const tpl = latestByDescription(db, req.query.description || '');
     const s = tpl ? { details: tpl.details, task_id: tpl.task_id, tags: tpl.tags } : { details: '', task_id: null, tags: [] };
-    res.render('partials/wu-fields', { s, tasks: listTasks(db), tags: listTags(db) });
+    res.render('partials/wu-fields', { s, taskGroups: listActiveTasksByClient(db), tags: listTags(db) });
   });
 
   r.get('/sessions/:id/edit', (req, res) => {
     const s = getSession(db, Number(req.params.id));
-    res.render('partials/session-edit', { s, tasks: listTasks(db), tags: listTags(db) });
+    res.render('partials/session-edit', { s, taskGroups: listActiveTasksByClient(db), tags: listTags(db) });
   });
 
   r.post('/sessions/:id', (req, res) => {
@@ -59,7 +59,7 @@ export function sessionsRouter(db, hub) {
     const start = parseLocal(req.body.start), end = parseLocal(req.body.end);
     if (!start || !end || end < start) {
       return res.status(400).render('partials/manual-add', {
-        tasks: listTasks(db), tags: listTags(db), error: 'Start and end times are required',
+        taskGroups: listActiveTasksByClient(db), tags: listTags(db), error: 'Start and end times are required',
       });
     }
     const taskId = req.body.taskId ? Number(req.body.taskId) : null;
@@ -72,7 +72,7 @@ export function sessionsRouter(db, hub) {
     if (taskId) tagIds = [...new Set([...tagIds, ...taskTagIds(db, taskId)])];
     setSessionTags(db, id, tagIds);
     hub.broadcast('changed');
-    res.render('partials/manual-add', { tasks: listTasks(db), tags: listTags(db), error: null });
+    res.render('partials/manual-add', { taskGroups: listActiveTasksByClient(db), tags: listTags(db), error: null });
   });
 
   r.post('/sessions/:id/delete', (req, res) => {

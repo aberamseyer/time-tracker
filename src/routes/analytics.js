@@ -9,6 +9,10 @@ import { fmtDuration, fmtMoney } from './tracking.js';
 const DAY = 86400000;
 const TYPES = ['week', 'month', 'quarter'];
 
+function idsFrom(v) {
+  return (Array.isArray(v) ? v : v != null && v !== '' ? [v] : []).map(Number).filter(n => !Number.isNaN(n));
+}
+
 export function analyticsRouter(db) {
   const r = express.Router();
   const rounding = () => getSettings(db).rounding_minutes;
@@ -24,10 +28,19 @@ export function analyticsRouter(db) {
     const ps = q.ps ? Number(q.ps) : periods[0].ps;
     const period = periodOf(type, ps, ws);
     periods.forEach(x => { x.selected = x.ps === period.start; });
-    const p = { by, metric, chart, type, ps: period.start, from: period.from, to: period.to, unit: period.unit };
-    const report = buildReport(db, { from: period.from, to: period.to, unit: period.unit, by, metric, rounding: rounding() });
+
+    const allTasks = listTasks(db);
+    const clientId = q.clientId ? Number(q.clientId) : null;
+    const menuTasks = clientId ? allTasks.filter(t => t.client_id === clientId) : allTasks;
+    const taskIds = idsFrom(q.taskId).filter(id => menuTasks.some(t => t.id === id));
+    const tagIds = idsFrom(q.tagId);
+
+    const p = { by, metric, chart, type, ps: period.start, from: period.from, to: period.to, unit: period.unit,
+      clientId, taskIds, tagIds };
+    const report = buildReport(db, { from: period.from, to: period.to, unit: period.unit, by, metric,
+      rounding: rounding(), clientId, taskIds, tagIds });
     return { p, report, periods, rangeLabel: period.label,
-      tasks: listTasks(db), tags: listTags(db), clients: listClients(db), fmtDuration, fmtMoney };
+      menuTasks, tags: listTags(db), clients: listClients(db), fmtDuration, fmtMoney };
   }
 
   r.get('/analytics', (req, res) =>
@@ -40,9 +53,10 @@ export function analyticsRouter(db) {
     const type = TYPES.includes(req.query.type) ? req.query.type : 'week';
     const period = periodOf(type, req.query.ps ? Number(req.query.ps) : Date.now(), weekStart());
     const filter = { from: dayStartUTC(period.from), to: dayStartUTC(period.to) + DAY - 1 };
-    if (req.query.taskId) filter.taskId = Number(req.query.taskId);
-    if (req.query.tagId) filter.tagId = Number(req.query.tagId);
     if (req.query.clientId) filter.clientId = Number(req.query.clientId);
+    const taskIds = idsFrom(req.query.taskId), tagIds = idsFrom(req.query.tagId);
+    if (taskIds.length) filter.taskIds = taskIds;
+    if (tagIds.length) filter.tagIds = tagIds;
     const clientCache = new Map();
     const clientOf = (id) => {
       if (!id) return null;

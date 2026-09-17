@@ -1,7 +1,7 @@
 import express from 'express';
 import { startTimer, startTimerFrom, pauseTimer, stopTimer, resumeTimer, timerState, getActiveSession } from '../timer.js';
 import { listSessions, decorateSession, updateSession, setSessionTags, distinctDescriptions, latestByDescription } from '../sessions.js';
-import { listTasks, listTags, taskTagIds } from '../catalog.js';
+import { listTasks, listTags, taskTagIds, listActiveTasksByClient } from '../catalog.js';
 import { getSettings } from '../settings.js';
 import { dayStartUTC, periodOf } from '../analytics.js';
 
@@ -79,7 +79,7 @@ export function trackingRouter(db, hub) {
   }
 
   function activeCtx() {
-    return { state: timerState(db, Date.now()), tasks: listTasks(db), tags: listTags(db), fmtDuration };
+    return { state: timerState(db, Date.now()), taskGroups: listActiveTasksByClient(db), tags: listTags(db), fmtDuration };
   }
 
   function idsFrom(v) {

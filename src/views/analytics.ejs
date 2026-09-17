@@ -1,5 +1,5 @@
 <%
-  const panel = include('partials/analytics-panel', { p, report, rangeLabel, tasks, tags, fmtDuration, fmtMoney });
+  const panel = include('partials/analytics-panel', { p, report, rangeLabel, menuTasks, tags, clients, fmtDuration, fmtMoney });
   const body = `<h1>Analytics</h1>${panel}`;
 %>
 <%- include('layout', { title, nav, body, wide: true }) %>

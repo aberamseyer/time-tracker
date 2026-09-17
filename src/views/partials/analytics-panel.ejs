@@ -1,6 +1,10 @@
 <%
-  const base = `by=${p.by}&metric=${p.metric}&chart=${p.chart}&type=${p.type}`;
+  const filterQS = (p.clientId ? `&clientId=${p.clientId}` : '')
+    + p.taskIds.map(id => `&taskId=${id}`).join('')
+    + p.tagIds.map(id => `&tagId=${id}`).join('');
+  const base = `by=${p.by}&metric=${p.metric}&chart=${p.chart}&type=${p.type}${filterQS}`;
   const qs = `${base}&ps=${p.ps}`;
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
   const fmtVal = report.metric === 'earnings' ? (v) => fmtMoney(v) : (v) => fmtDuration(v);
   const buckets = report.buckets, series = report.series;
   const W = 720, H = 240, x0 = 46, x1 = 710, yT = 12, yB = 214;
@@ -25,6 +29,27 @@
     <div class="segmented"><%- seg('metric', p.metric, [['time','Working time'],['earnings','Earnings']]) %></div>
     <div class="segmented"><%- seg('by', p.by, [['task','Tasks'],['tag','Tags']]) %></div>
     <div class="segmented"><%- seg('type', p.type, [['week','Week'],['month','Month'],['quarter','Quarter']]) %></div>
+    <select name="clientId">
+      <option value="">All clients</option>
+      <% clients.forEach(c => { %><option value="<%= c.id %>" <%= p.clientId === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
+    </select>
+    <details class="dropdown">
+      <summary>Tasks<%= p.taskIds.length ? ` (${p.taskIds.length})` : '' %></summary>
+      <div class="menu">
+        <% if (!menuTasks.length) { %><div class="mi">No tasks</div><% } %>
+        <% menuTasks.forEach(t => { %>
+          <label class="mi"><input type="checkbox" name="taskId" value="<%= t.id %>" <%= p.taskIds.includes(t.id) ? 'checked' : '' %>><span class="sw" style="background:<%= t.color %>"></span><%= esc(t.name) %></label>
+        <% }) %>
+      </div>
+    </details>
+    <details class="dropdown">
+      <summary>Tags<%= p.tagIds.length ? ` (${p.tagIds.length})` : '' %></summary>
+      <div class="menu">
+        <% tags.forEach(t => { %>
+          <label class="mi"><input type="checkbox" name="tagId" value="<%= t.id %>" <%= p.tagIds.includes(t.id) ? 'checked' : '' %>><span class="sw" style="background:<%= t.color %>"></span><%= esc(t.name) %></label>
+        <% }) %>
+      </div>
+    </details>
   </form>
 
   <div class="an-periods">
@@ -69,15 +94,10 @@
   <form class="an-export" method="get" action="/export.csv">
     <input type="hidden" name="type" value="<%= p.type %>">
     <input type="hidden" name="ps" value="<%= p.ps %>">
-    <select name="clientId"><option value="">All clients</option>
-      <% clients.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
-    </select>
-    <select name="taskId"><option value="">All tasks</option>
-      <% tasks.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
-    </select>
-    <select name="tagId"><option value="">All tags</option>
-      <% tags.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
-    </select>
+    <% if (p.clientId) { %><input type="hidden" name="clientId" value="<%= p.clientId %>"><% } %>
+    <% p.taskIds.forEach(id => { %><input type="hidden" name="taskId" value="<%= id %>"><% }) %>
+    <% p.tagIds.forEach(id => { %><input type="hidden" name="tagId" value="<%= id %>"><% }) %>
+    <span class="an-export-note">Exports the current view</span>
     <button>Export CSV</button>
   </form>
 </div>

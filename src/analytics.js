@@ -12,14 +12,19 @@ function mdLabel(ms) {
 }
 
 // Aggregate completed sessions into buckets (day or week) grouped by task or tag.
-export function buildReport(db, { from, to, unit = 'day', by = 'task', metric = 'time', rounding = 0 }) {
+export function buildReport(db, { from, to, unit = 'day', by = 'task', metric = 'time', rounding = 0,
+  clientId = null, taskIds = [], tagIds = [] }) {
   const size = unit === 'week' ? 7 * DAY : DAY;
   const start = dayStartUTC(from);
   const end = dayStartUTC(to) + DAY;
   const n = Math.max(1, Math.ceil((end - start) / size));
   const buckets = [];
   for (let i = 0; i < n; i++) buckets.push({ start: start + i * size, label: mdLabel(start + i * size) });
-  const sessions = listSessions(db, { from: start, to: end - 1 }).filter(s => s.end_utc != null);
+  const filter = { from: start, to: end - 1 };
+  if (clientId) filter.clientId = clientId;
+  if (taskIds.length) filter.taskIds = taskIds;
+  if (tagIds.length) filter.tagIds = tagIds;
+  const sessions = listSessions(db, filter).filter(s => s.end_utc != null);
   const seriesMap = new Map();
   const ensure = (key, name, color) => {
     if (!seriesMap.has(key)) seriesMap.set(key, { key, name, color, values: buckets.map(() => 0), total: 0 });
