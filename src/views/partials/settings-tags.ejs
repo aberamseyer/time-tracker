@@ -5,7 +5,7 @@
       <input name="name" value="<%= t.name %>" required>
       <button title="Save">Save</button>
       <button class="danger" title="Archive" hx-post="/settings/tags/<%= t.id %>/archive"
-              hx-target="#settings-tags" hx-swap="outerHTML">✕</button>
+              hx-target="#settings-tags" hx-swap="outerHTML"><%- include('icon', { name:'x' }) %></button>
     </form>
   <% }) %>
   <form class="manage-row new" hx-post="/settings/tags" hx-target="#settings-tags" hx-swap="outerHTML">

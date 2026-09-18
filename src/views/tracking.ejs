@@ -3,6 +3,7 @@
   const active = include('partials/active-timer', { state, taskGroups, tags, fmtDuration });
   const list = include('partials/tracking-list', { groups, hasMore, nextOffset, showEmpty, fmtDuration, fmtMoney });
   const manualAdd = include('partials/manual-add', { taskGroups, tags, error: null });
+  const plusIcon = include('partials/icon', { name: 'plus' });
   const options = descriptions.map(d => `<option value="${escapeHtmlAttr(d)}">`).join('');
   const taskChecked = (id) => selTasks.length === 0 || selTasks.includes(id);
   const tagChecked = (id) => selTags.length === 0 || selTags.includes(id);
@@ -16,7 +17,7 @@
     <datalist id="desc-options">${options}</datalist>
     <div class="time-toolbar">
       <details class="add-wu">
-        <summary title="Add work unit">＋</summary>
+        <summary title="Add work unit">${plusIcon}</summary>
         ${manualAdd}
       </details>
       <form class="filters" hx-get="/partials/tracking-list" hx-target="#tracking-list" hx-swap="innerHTML"

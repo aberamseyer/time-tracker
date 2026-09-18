@@ -1,6 +1,6 @@
 <section class="day-group" x-data="{ open: true }">
   <header @click="open = !open">
-    <span class="chev" x-text="open ? '▾' : '▸'"></span>
+    <span class="chev" :class="open && 'open'"><%- include('icon', { name:'chevron' }) %></span>
     <span class="label"><%= g.label %></span>
     <span class="totals"><%= fmtMoney(g.totalCents) %> · <%= fmtDuration(g.totalMs) %></span>
   </header>

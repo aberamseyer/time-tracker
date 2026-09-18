@@ -10,6 +10,12 @@
   }
 }
 * { box-sizing: border-box; }
+
+/* Icons */
+.ico-svg { width:1.25em; height:1.25em; display:inline-block; vertical-align:-0.15em; flex:0 0 auto; }
+button .ico-svg, summary .ico-svg { display:block; }
+.chev .ico-svg { width:1em; height:1em; transition:transform .15s; }
+.chev.open .ico-svg { transform:rotate(90deg); }
 html,body { margin:0; }
 body { font:16px/1.45 system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--ink); }
 main { max-width:760px; margin:0 auto; padding:16px 16px 96px; }        /* bottom pad clears tabbar */

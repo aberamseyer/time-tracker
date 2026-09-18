@@ -13,10 +13,10 @@
 <body class="<%= (typeof nav !== 'undefined' && nav) ? 'app' : 'auth' %>">
   <% if (typeof nav !== 'undefined' && nav) { %>
   <nav class="tabbar">
-    <a href="/" class="<%= nav==='tracking'?'active':'' %>"><span class="ico">⏱</span><span class="lbl">Time</span></a>
-    <a href="/tasks" class="<%= nav==='tasks'?'active':'' %>"><span class="ico">☰</span><span class="lbl">Tasks</span></a>
-    <a href="/analytics" class="<%= nav==='analytics'?'active':'' %>"><span class="ico">📊</span><span class="lbl">Stats</span></a>
-    <a href="/settings" class="<%= nav==='settings'?'active':'' %>"><span class="ico">⚙</span><span class="lbl">Settings</span></a>
+    <a href="/" class="<%= nav==='tracking'?'active':'' %>"><span class="ico"><%- include('partials/icon', { name:'clock' }) %></span><span class="lbl">Time</span></a>
+    <a href="/tasks" class="<%= nav==='tasks'?'active':'' %>"><span class="ico"><%- include('partials/icon', { name:'list' }) %></span><span class="lbl">Tasks</span></a>
+    <a href="/analytics" class="<%= nav==='analytics'?'active':'' %>"><span class="ico"><%- include('partials/icon', { name:'chart' }) %></span><span class="lbl">Stats</span></a>
+    <a href="/settings" class="<%= nav==='settings'?'active':'' %>"><span class="ico"><%- include('partials/icon', { name:'gear' }) %></span><span class="lbl">Settings</span></a>
   </nav>
   <% } %>
   <main class="<%= (typeof wide !== 'undefined' && wide) ? 'wide' : '' %>"><%- body %></main>

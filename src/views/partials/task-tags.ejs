@@ -5,7 +5,7 @@
       <span class="tag" style="--chip: <%= t.color %>"><%= t.name %>
         <button type="button" class="x" title="Remove"
                 hx-post="/tasks/<%= task.id %>/tags/<%= t.id %>/delete"
-                hx-target="#te-tags-<%= task.id %>" hx-swap="outerHTML">×</button>
+                hx-target="#te-tags-<%= task.id %>" hx-swap="outerHTML"><%- include('icon', { name:'x' }) %></button>
       </span>
     <% }) %>
     <% if (!task.tags.length) { %><span class="muted">none</span><% } %>

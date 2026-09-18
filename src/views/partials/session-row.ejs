@@ -10,6 +10,6 @@
     <span class="dur"><%= fmtDuration(s.roundedMs) %></span>
   </div>
   <form hx-post="/timer/start-from/<%= s.id %>" hx-target="#active-timer" hx-swap="outerHTML" class="row-play">
-    <button class="resume" title="Start again">▶</button>
+    <button class="resume" title="Start again"><%- include('icon', { name:'play' }) %></button>
   </form>
 </div>

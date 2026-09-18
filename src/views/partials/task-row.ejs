@@ -9,7 +9,7 @@
   <div class="task-actions">
     <% if (t.hourly_rate_cents != null) { %><span class="rate">$<%= (t.hourly_rate_cents / 100).toFixed(0) %>/h</span><% } %>
     <form hx-post="/tasks/<%= t.id %>/hide" hx-target="closest .task-row" hx-swap="outerHTML" class="eye">
-      <button type="submit" title="<%= t.archived ? 'Show' : 'Hide' %>"><%= t.archived ? '🙈' : '👁' %></button>
+      <button type="submit" title="<%= t.archived ? 'Show' : 'Hide' %>"><%- include('icon', { name: t.archived ? 'eye-off' : 'eye' }) %></button>
     </form>
   </div>
 </div>
