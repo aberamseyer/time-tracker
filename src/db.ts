@@ -64,11 +64,11 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
-function addColumn(db, table, col, def) {
+function addColumn(db: Database.Database, table: string, col: string, def: string): void {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch { /* exists */ }
 }
 
-export function migrate(db) {
+export function migrate(db: Database.Database): void {
   db.exec(SCHEMA);
   // Columns added after v2; ALTER is a no-op when they already exist.
   addColumn(db, 'task', 'details', "TEXT NOT NULL DEFAULT ''");
@@ -76,15 +76,15 @@ export function migrate(db) {
   addColumn(db, 'settings', 'session_grouping', "TEXT NOT NULL DEFAULT 'day'");
 }
 
-export function seedSettings(db) {
+export function seedSettings(db: Database.Database): void {
   db.prepare('INSERT OR IGNORE INTO settings (id) VALUES (1)').run();
 }
 
 // Close DBs before env teardown; unclosed handles assert on node 24 exit.
-const openDatabases = new Set();
+const openDatabases: Set<Database.Database> = new Set();
 let exitHookInstalled = false;
 
-function installExitHook() {
+function installExitHook(): void {
   if (exitHookInstalled) return;
   exitHookInstalled = true;
   process.once('exit', () => {
@@ -94,7 +94,7 @@ function installExitHook() {
   });
 }
 
-export function openDb(path = ':memory:') {
+export function openDb(path: string = ':memory:'): Database.Database {
   const db = new Database(path);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
