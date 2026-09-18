@@ -26,6 +26,6 @@
     <form method="post" action="/logout" class="logout-form">
       <button class="danger">Log out</button>
     </form>
-    <footer class="version">${version.hash} · ${new Date(version.builtAt).toLocaleString()}</footer>`;
+    <footer class="version">${version.hash} · ${version.builtAt}</footer>`;
 %>
 <%- include('layout', { title, nav, body }) %>
