@@ -4,8 +4,9 @@
          hx-get="/sessions/template" hx-trigger="change" hx-include="this" hx-target="next .wu-fields" hx-swap="outerHTML">
   <%- include('wu-fields', { s: null, taskGroups, tags }) %>
   <div class="time-row">
-    <label>Start<input type="datetime-local" name="start" required></label>
-    <label>End<input type="datetime-local" name="end" required></label>
+    <label>Date<input type="date" name="date" required></label>
+    <label>Start<input type="time" name="start" required></label>
+    <label>End<input type="time" name="end" required></label>
   </div>
   <button>Add work unit</button>
 </form>

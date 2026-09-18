@@ -4,10 +4,9 @@
          hx-target="next .wu-fields" hx-swap="outerHTML">
   <%- include('wu-fields', { s, taskGroups, tags }) %>
   <div class="time-row">
-    <label>Start<input type="datetime-local" name="start"
-      value="<%= new Date(s.start_utc).toISOString().slice(0,16) %>"></label>
-    <label>End<input type="datetime-local" name="end"
-      value="<%= s.end_utc ? new Date(s.end_utc).toISOString().slice(0,16) : '' %>"></label>
+    <label>Date<input type="date" name="date" value="<%= startAt.date %>"></label>
+    <label>Start<input type="time" name="start" value="<%= startAt.time %>"></label>
+    <label>End<input type="time" name="end" value="<%= endAt.time %>"></label>
   </div>
   <div class="actions">
     <button type="submit">Save</button>

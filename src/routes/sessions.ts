@@ -34,24 +34,31 @@ export function sessionsRouter(db: Database.Database, hub: Hub): Router {
 
   r.get('/sessions/:id/edit', (req: Request, res: Response) => {
     const s = getSession(db, Number(req.params.id));
-    res.render('partials/session-edit', { s, taskGroups: listActiveTasksByClient(db), tags: listTags(db) });
+    const at = (ms: number | null) => ms == null
+      ? { date: '', time: '' }
+      : { date: new Date(ms).toISOString().slice(0, 10), time: new Date(ms).toISOString().slice(11, 16) };
+    res.render('partials/session-edit', {
+      s, startAt: at(s ? s.start_utc : null), endAt: at(s ? s.end_utc : null),
+      taskGroups: listActiveTasksByClient(db), tags: listTags(db),
+    });
   });
 
   r.post('/sessions/:id', (req: Request, res: Response) => {
     const id = Number(req.params.id);
     const body = req.body as Record<string, unknown>;
-    let start, end;
-    if (body.start) {
-      start = parseLocal(body.start); end = parseLocal(body.end);
-      if (!start || !end || end < start) {
-        return res.status(400).render('partials/error', { message: 'Start and end times are required' });
+    let times: { startUtc: number; endUtc: number } | undefined;
+    if (body.date) {
+      const start = parseLocal(`${body.date}T${body.start}`), end = parseLocal(`${body.date}T${body.end}`);
+      if (start == null || end == null || end <= start) {
+        return res.status(400).render('partials/error', { message: 'End must be after start' });
       }
+      times = { startUtc: start, endUtc: end };
     }
     updateSession(db, id, {
       description: (body.description as string) ?? '',
       details: (body.details as string) ?? '',
       taskId: body.taskId ? Number(body.taskId) : null,
-      ...(body.start ? { startUtc: start, endUtc: end } : {}),
+      ...(times ?? {}),
     });
     setSessionTags(db, id, idsFrom(body, 'tagId'));
     hub.broadcast('changed');
@@ -61,10 +68,10 @@ export function sessionsRouter(db: Database.Database, hub: Hub): Router {
 
   r.post('/sessions', (req: Request, res: Response) => {
     const body = req.body as Record<string, unknown>;
-    const start = parseLocal(body.start), end = parseLocal(body.end);
-    if (!start || !end || end < start) {
+    const start = parseLocal(`${body.date}T${body.start}`), end = parseLocal(`${body.date}T${body.end}`);
+    if (!body.date || start == null || end == null || end <= start) {
       return res.status(400).render('partials/manual-add', {
-        taskGroups: listActiveTasksByClient(db), tags: listTags(db), error: 'Start and end times are required',
+        taskGroups: listActiveTasksByClient(db), tags: listTags(db), error: 'End must be after start',
       });
     }
     const taskId = body.taskId ? Number(body.taskId) : null;

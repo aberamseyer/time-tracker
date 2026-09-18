@@ -18,34 +18,36 @@ test('time filter shows only sessions without a task', async () => {
   assert.doesNotMatch(res.text, /labeled/);
 });
 
-test('manual create requires start and end', async () => {
+test('manual create composes civil start/end from date + times', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const bad = await agent.post('/sessions').type('form').send({ description: 'x', start: '2026-09-15T09:00' });
+  const bad = await agent.post('/sessions').type('form').send({ date: '2026-09-15', start: '10:00', end: '09:00' });
   assert.equal(bad.status, 400);
   assert.equal((db.prepare('SELECT COUNT(*) c FROM session').get() as { c: number }).c, 0);
-  const ok = await agent.post('/sessions').type('form').send({ description: 'Call', start: '2026-09-15T09:00', end: '2026-09-15T10:00' });
+  const ok = await agent.post('/sessions').type('form').send({ description: 'Call', date: '2026-09-15', start: '09:00', end: '10:30' });
   assert.equal(ok.status, 200);
-  const s = db.prepare('SELECT * FROM session').get() as { start_utc: number; end_utc: number };
+  const s = db.prepare('SELECT * FROM session').get() as { start_utc: number; end_utc: number; paused_ms: number };
   assert.equal(s.start_utc, Date.parse('2026-09-15T09:00Z'));
-  assert.equal(s.end_utc, Date.parse('2026-09-15T10:00Z'));
+  assert.equal(s.end_utc, Date.parse('2026-09-15T10:30Z'));
+  assert.equal(s.paused_ms, 0);
 });
 
-test('edit updates fields and times, returns re-editable row', async () => {
+test('edit composes times and preserves paused_ms', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const t = createTask(db, { name: 'Paid' });
-  const tag = createTag(db, { name: 'Bug' });
-  const id = createSession(db, { startUtc: Date.parse('2026-09-15T09:00Z'), endUtc: Date.parse('2026-09-15T10:00Z') });
+  const id = createSession(db, {
+    startUtc: Date.parse('2026-09-15T09:00Z'), endUtc: Date.parse('2026-09-15T10:00Z'), pausedMs: 15 * 60000,
+  });
   const res = await agent.post('/sessions/' + id).type('form')
-    .send({ description: 'Fixed', taskId: String(t), tagId: String(tag), start: '2026-09-15T09:30', end: '2026-09-15T10:30' });
+    .send({ description: 'Fixed', date: '2026-09-15', start: '09:30', end: '11:00' });
   assert.equal(res.status, 200);
   assert.match(res.text, new RegExp(`hx-get="/sessions/${id}/edit"`));
   const s = getSession(db, id)!;
-  assert.equal(s.description, 'Fixed');
   assert.equal(s.start_utc, Date.parse('2026-09-15T09:30Z'));
+  assert.equal(s.end_utc, Date.parse('2026-09-15T11:00Z'));
+  assert.equal(s.paused_ms, 15 * 60000);            // untouched
 });
 
 test('template endpoint prefills from last matching description', async () => {
