@@ -13,7 +13,7 @@ After=network.target
 Type=simple
 User=DEPLOY_USER
 WorkingDirectory=/home/DEPLOY_USER/time-tracker
-ExecStart=/home/DEPLOY_USER/bin/tt-node src/server.js
+ExecStart=/home/DEPLOY_USER/bin/tt-node dist/src/server.js
 Restart=on-failure
 RestartSec=3
 # App loads .env via dotenv; nothing else needed here.

@@ -4,10 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `npm test` — run the full suite (`node --test`, all `test/*.test.js`).
-- `node --test test/timer.test.js` — run one file.
+- `npm test` — builds (`tsc` + copy assets), then runs the full suite (`node --test`) against `dist/test/**/*.test.js`.
+- `npm run build` — compile `src/`/`test/`/`scripts/` (TypeScript) to `dist/` and copy `views`/`public`.
+- `npm run typecheck` — `tsc --noEmit`, no build output.
+- `node --test dist/test/timer.test.js` — run one compiled test file (run `npm run build` first).
 - `node --test --test-name-pattern="pause then resume"` — run tests matching a name.
-- `npm start` — run the server (`src/server.js`), default port 3000.
+- `npm start` — run the server (`dist/src/server.js`), default port 3000.
 - `npm run seed` — create/update the single login user; requires `TT_USERNAME` and `TT_PASSWORD` env vars.
 
 Env: `DB_PATH` (default `data.sqlite`), `PORT`, `SESSION_SECRET` (required when `NODE_ENV=production`), `TT_USERNAME`/`TT_PASSWORD` (seed only). Loaded via `dotenv` from `.env`.
@@ -15,6 +17,8 @@ Env: `DB_PATH` (default `data.sqlite`), `PORT`, `SESSION_SECRET` (required when 
 ## Architecture
 
 Single-user time tracker. Express + EJS server-rendered HTML, htmx for partial updates, Alpine for the running clock, WebSocket for live cross-tab sync. SQLite via `better-sqlite3` (synchronous). ES modules throughout (`"type": "module"`).
+
+**TypeScript build.** Source is strict TypeScript (`src/`, `test/`, `scripts/`) compiled by `tsc` (NodeNext) to `dist/`; `views/` and `public/` are copied alongside so `dist/` is self-contained and runnable on its own. Import specifiers use the compiled `.js` extension (e.g. `import { openDb } from './db.js'`) even though the source files are `.ts` — NodeNext module resolution requires this. Never edit files under `dist/`; edit the `.ts` source and rebuild.
 
 **Two-layer structure.** Pure data modules take `db` as their first argument and hold all SQL and business logic: `sessions.js`, `catalog.js` (tasks/tags/clients), `timer.js`, `analytics.js`, `settings.js`, `calc.js`, `csv.js`. Thin routers in `src/routes/*` parse requests, call those modules, and render EJS. Keep SQL and logic in the data modules, not in routers — this is why every function threads `db` explicitly and tests exercise the modules directly against an in-memory DB.
 
@@ -32,4 +36,4 @@ Single-user time tracker. Express + EJS server-rendered HTML, htmx for partial u
 
 ## Deploy
 
-CI (`.github/workflows/deploy.yml`) tests in the cloud, then a self-hosted runner rsyncs to a VPS and restarts a systemd unit. Native deps (`better-sqlite3`) are rebuilt against an LTS node pinned by `.nvmrc`; node >=24 required. Full setup in `deploy/README.md`. Never add `pull_request`/`pull_request_target` triggers to the self-hosted deploy job.
+CI (`.github/workflows/deploy.yml`) builds and tests in the cloud, uploads `dist/` as an artifact, then a self-hosted runner downloads it, rsyncs the tree to a VPS, and restarts a systemd unit running `dist/src/server.js`. Native deps (`better-sqlite3`) are rebuilt against an LTS node pinned by `.nvmrc`; node >=24 required. Full setup in `deploy/README.md`. Never add `pull_request`/`pull_request_target` triggers to the self-hosted deploy job.

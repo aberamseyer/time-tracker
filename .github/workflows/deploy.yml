@@ -25,6 +25,11 @@ jobs:
       - if: steps.modules.outputs.cache-hit != 'true'
         run: npm ci
       - run: npm test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
 
   # Self-hosted runner on the laptop; reaches the WireGuard-only VPS over WG.
   # Gated to push/dispatch only — fork PRs cannot trigger it.
@@ -35,6 +40,11 @@ jobs:
     concurrency: deploy-production
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
 
       - name: Rsync code to VPS
         run: |

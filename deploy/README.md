@@ -1,8 +1,11 @@
 # Deploy
 
-CI (`.github/workflows/deploy.yml`) tests in the cloud, then a self-hosted runner
-rsyncs the tree to the VPS over WireGuard, installs the LTS node, rebuilds native
-deps, and restarts the systemd unit. One-time VPS setup below.
+CI (`.github/workflows/deploy.yml`) builds and tests in the cloud, uploads the
+compiled `dist/` as an artifact, then a self-hosted runner downloads it,
+rsyncs the tree (including `dist/`) to the VPS over WireGuard, installs the
+LTS node, rebuilds native deps, and restarts the systemd unit. The service
+runs `dist/src/server.js`; no build happens on the VPS. One-time VPS setup
+below.
 
 ## Node version
 
@@ -13,7 +16,7 @@ against. Upgrading LTS needs no server edits.
 
 ## One-time VPS setup
 
-1. Clone and configure:
+1. Clone and configure (no build needed here; `dist/` ships from CI):
    ```
    git clone git@github.com:aberamseyer/time-tracker.git ~/time-tracker
    cd ~/time-tracker
