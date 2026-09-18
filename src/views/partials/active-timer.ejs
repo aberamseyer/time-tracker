@@ -4,14 +4,16 @@
     <div class="timer-card <%= state.state %>">
       <div class="timer-head">
         <span class="dot"></span>
-        <span class="elapsed" data-elapsed="<%= state.elapsedMs %>" data-running="<%= state.state === 'running' %>"></span>
+        <span class="elapsed" data-start="<%= s.start_utc %>" data-paused="<%= s.paused_ms %>"
+              data-pausestart="<%= s.pause_started_at == null ? '' : s.pause_started_at %>"
+              data-running="<%= state.state === 'running' %>"></span>
         <div class="timer-controls">
           <% if (state.state === 'running') { %>
-            <form hx-post="/timer/pause" hx-target="#active-timer" hx-swap="outerHTML"><button class="pause">Pause</button></form>
+            <form hx-post="/timer/pause" hx-vals='js:{tz: new Date().getTimezoneOffset()}' hx-target="#active-timer" hx-swap="outerHTML"><button class="pause">Pause</button></form>
           <% } else { %>
-            <form hx-post="/timer/resume" hx-target="#active-timer" hx-swap="outerHTML"><button class="resume">Resume</button></form>
+            <form hx-post="/timer/resume" hx-vals='js:{tz: new Date().getTimezoneOffset()}' hx-target="#active-timer" hx-swap="outerHTML"><button class="resume">Resume</button></form>
           <% } %>
-          <form hx-post="/timer/stop" hx-target="#active-timer" hx-swap="outerHTML"><button class="stop">Stop</button></form>
+          <form hx-post="/timer/stop" hx-vals='js:{tz: new Date().getTimezoneOffset()}' hx-target="#active-timer" hx-swap="outerHTML"><button class="stop">Stop</button></form>
         </div>
       </div>
       <form class="timer-edit" hx-post="/timer/update" hx-trigger="change"
@@ -19,9 +21,14 @@
         <input name="description" value="<%= s.description %>" placeholder="What are you working on?" list="desc-options">
         <%- include('wu-fields', { s, taskGroups, tags }) %>
       </form>
+      <!-- Separate form + hx-swap=none: persist start without re-rendering the timer. -->
+      <form class="timer-start-form" hx-post="/timer/start-time" hx-trigger="tt:commitstart" hx-swap="none"
+            hx-vals='js:{tz: new Date().getTimezoneOffset(), start: new Date(document.getElementById("timer-start-input").value).getTime()}'>
+        <label class="timer-start">Started<input type="datetime-local" id="timer-start-input"></label>
+      </form>
     </div>
   <% } else { %>
-    <form class="start-form" hx-post="/timer/start" hx-target="#active-timer" hx-swap="outerHTML">
+    <form class="start-form" hx-post="/timer/start" hx-vals='js:{tz: new Date().getTimezoneOffset()}' hx-target="#active-timer" hx-swap="outerHTML">
       <button class="start">Start work</button>
     </form>
   <% } %>

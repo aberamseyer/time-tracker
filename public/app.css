@@ -52,6 +52,7 @@ legend { color:var(--muted); font-size:.9rem; margin-bottom:.4rem; }
 .timer-head .elapsed { font-variant-numeric:tabular-nums; font-weight:700; font-size:1.4rem; }
 .timer-controls { margin-left:auto; display:flex; gap:.5rem; }
 .timer-edit { display:grid; gap:.6rem; }
+.timer-start { display:grid; gap:.2rem; font-size:.8rem; color:var(--muted); }
 
 /* Work-unit shared fields */
 .wu-fields { display:grid; gap:.6rem; }
