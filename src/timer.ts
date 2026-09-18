@@ -99,9 +99,11 @@ export function splitExpiredDays(db: Database.Database, now: number, tzMin: numb
       startUtc: startCivil, endUtc: dayStart + DAY - 1, pausedMs: paused, pauseStartedAt: null,
     });
     const src = getSession(db, active.id)!;
+    const wasPaused = active.pause_started_at != null;
     const id = createSession(db, {
       description: src.description, details: src.details, taskId: src.task_id,
       startUtc: boundaryReal, endUtc: null, createdAt: boundaryReal,
+      pauseStartedAt: wasPaused ? boundaryReal : null,
     });
     setSessionTags(db, id, src.tags.map(t => t.id));
     changed = true;
@@ -113,9 +115,9 @@ export function splitExpiredDays(db: Database.Database, now: number, tzMin: numb
 export function timerState(
   db: Database.Database,
   now: number,
-): { state: 'none' | 'paused' | 'running'; session: DecoratedSession | null; elapsedMs: number } {
+): { state: 'none' | 'paused' | 'running'; session: DecoratedSession | null } {
   const active = getActiveSession(db);
-  if (!active) return { state: 'none', session: null, elapsedMs: 0 };
+  if (!active) return { state: 'none', session: null };
   const session = decorateSession(db, getSession(db, active.id)!, now, getSettings(db).rounding_minutes);
-  return { state: session.paused ? 'paused' : 'running', session, elapsedMs: session.durationMs };
+  return { state: session.paused ? 'paused' : 'running', session };
 }

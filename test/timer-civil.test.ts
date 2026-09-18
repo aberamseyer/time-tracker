@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from '../src/db.js';
 import { getSession } from '../src/sessions.js';
-import { startTimer, stopTimer, getActiveSession, splitExpiredDays } from '../src/timer.js';
+import { startTimer, stopTimer, pauseTimer, getActiveSession, splitExpiredDays } from '../src/timer.js';
 
 const HOUR = 3600000;
 const CDT = 300; // UTC-5 offset in minutes (Date.getTimezoneOffset style)
@@ -58,4 +58,21 @@ test('split loops across multiple days', () => {
   const active = getActiveSession(db)!;
   assert.equal(active.start_utc, 2 * DAY + off);         // day 2 midnight (real)
   assert.equal(active.end_utc, null);
+});
+
+test('split preserves pause across midnight', () => {
+  const db = openDb(':memory:');
+  const off = CDT * 60000;
+  const civilStart = 23 * HOUR;                  // civil 23:00 day 0
+  const realStart = civilStart + off;
+  const first = startTimer(db, realStart);
+  pauseTimer(db, realStart + 30 * 60000);        // pause at civil 23:30 (real)
+  const nowReal = (24 * HOUR + 30 * 60000) + off; // civil 00:30 next day
+  splitExpiredDays(db, nowReal, CDT);
+  const closed = getSession(db, first)!;
+  assert.equal(closed.end_utc, DAY - 1);         // civil 23:59:59.999 day 0
+  assert.equal(closed.pause_started_at, null);   // pause folded on close
+  const active = getActiveSession(db)!;
+  assert.equal(active.start_utc, DAY + off);      // real next-midnight
+  assert.equal(active.pause_started_at, DAY + off); // still paused from boundary
 });

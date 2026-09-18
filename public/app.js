@@ -47,7 +47,7 @@
     clock.el.textContent = fmtElapsed(ms);
   }
   function maybeSplit() {
-    if (!clock || !clock.running || splitting) return;
+    if (!clock || splitting) return;
     if (localDay(Date.now()) <= localDay(clock.start)) return;
     splitting = true;
     fetch('/timer/split', {
@@ -68,7 +68,7 @@
     if (startEl) startEl.value = fmtLocal(new Date(clock.start));   // real -> local
     renderClock();
     maybeSplit();
-    if (clock.running) clockTimer = setInterval(() => { renderClock(); maybeSplit(); }, 1000);
+    clockTimer = setInterval(() => { renderClock(); maybeSplit(); }, 1000);
   }
   // Edit running start: clamp to [local midnight, now - pauses], persist clamped.
   document.body.addEventListener('change', (e) => {

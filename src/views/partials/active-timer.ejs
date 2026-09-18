@@ -9,9 +9,9 @@
               data-running="<%= state.state === 'running' %>"></span>
         <div class="timer-controls">
           <% if (state.state === 'running') { %>
-            <form hx-post="/timer/pause" hx-vals='js:{tz: new Date().getTimezoneOffset()}' hx-target="#active-timer" hx-swap="outerHTML"><button class="pause">Pause</button></form>
+            <form hx-post="/timer/pause" hx-target="#active-timer" hx-swap="outerHTML"><button class="pause">Pause</button></form>
           <% } else { %>
-            <form hx-post="/timer/resume" hx-vals='js:{tz: new Date().getTimezoneOffset()}' hx-target="#active-timer" hx-swap="outerHTML"><button class="resume">Resume</button></form>
+            <form hx-post="/timer/resume" hx-target="#active-timer" hx-swap="outerHTML"><button class="resume">Resume</button></form>
           <% } %>
           <form hx-post="/timer/stop" hx-vals='js:{tz: new Date().getTimezoneOffset()}' hx-target="#active-timer" hx-swap="outerHTML"><button class="stop">Stop</button></form>
         </div>

@@ -129,7 +129,10 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
     res.render('partials/active-timer', activeCtx());
   }
 
-  const tzOf = (req: Request) => Number((req.body as Record<string, unknown>).tz) || 0;
+  const tzOf = (req: Request) => {
+    const raw = (req.body as Record<string, unknown>).tz;
+    return raw == null || raw === '' ? new Date().getTimezoneOffset() : Number(raw) || 0;
+  };
 
   r.post('/timer/start', (req: Request, res: Response) => { startTimer(db, Date.now(), { tzMin: tzOf(req) }); afterMutation(res); });
   r.post('/timer/pause', (req: Request, res: Response) => { pauseTimer(db, Date.now()); afterMutation(res); });
