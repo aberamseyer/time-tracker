@@ -15,14 +15,14 @@ export const TASK_COLORS: string[] = [
 	'#4B3A33'  // Earthy Cocoa
 ];
 export const TAG_COLORS: string[] = [
-	'#F5EBE0', // Parchment White
-	'#D3DDD0', // Dried Sage
-	'#E8D8C8', // Warmed Linen
-	'#EEDAA2', // Harvest Straw
-	'#D8CEE0', // Faded Lavender
-	'#C4D3DF', // Muted Sky
-	'#F7E3B6', // Apricot Mist
-	'#D9E7D0', // Winter Mint
+	'#E7DFD4', // Parchment
+	'#BFCDB8', // Aged Sage
+	'#DCC5AE', // Warmed Taupe
+	'#DECB8B', // Ochre Wheat
+	'#CAB8D6', // Dusty Mauve
+	'#AEBECF', // Stormy Slate
+	'#EEDBB2', // Antique Apricot
+	'#C8D7BE', // Washed Mint
 ];
 
 // First palette color, used as the column/route default for each kind.
@@ -33,14 +33,16 @@ export const DEFAULT_TAG_COLOR: string = TAG_COLORS[0];
 export function suggestColor(db: Database.Database, kind: 'task' | 'tag'): string {
   const palette = kind === 'tag' ? TAG_COLORS : TASK_COLORS;
   const table = kind === 'tag' ? 'tag' : 'task';
-  const counts = new Map<string, number>(palette.map(c => [c, 0]));
+  // Compare case-insensitively: <input type=color> submits lowercase hex.
+  const counts = new Map<string, number>(palette.map(c => [c.toLowerCase(), 0]));
   const rows = db.prepare(`SELECT color FROM ${table}`).all() as { color: string }[];
   for (const { color } of rows) {
-    if (counts.has(color)) counts.set(color, (counts.get(color) ?? 0) + 1);
+    const key = color.toLowerCase();
+    if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   let best = palette[0], min = Infinity;
   for (const c of palette) {
-    const n = counts.get(c) ?? 0;
+    const n = counts.get(c.toLowerCase()) ?? 0;
     if (n < min) { min = n; best = c; }
   }
   return best;

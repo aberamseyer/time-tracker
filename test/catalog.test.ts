@@ -4,7 +4,7 @@ import { openDb } from '../src/db.js';
 import { createClient, createTask, createTag, getTag, listTasks, listTags,
   archiveTask, effectiveRateCents, getClient, updateClient, deleteClient,
   listTasksByClient, updateTask } from '../src/catalog.js';
-import { TASK_COLORS, TAG_COLORS } from '../src/colors.js';
+import { TASK_COLORS, TAG_COLORS, suggestColor } from '../src/colors.js';
 
 test('create and list tasks (archived hidden)', () => {
   const db = openDb(':memory:');
@@ -102,4 +102,12 @@ test('updateTask reassigns a task to another client', () => {
   updateTask(db, t, { name: 'Job', color: '#111111', clientId: null });
   const none = listTasksByClient(db).find(g => g.client === null);
   assert.ok(none!.tasks.some(x => x.id === t));
+});
+
+test('suggestColor rotates despite lowercase stored hex', () => {
+  const db = openDb(':memory:');
+  assert.equal(suggestColor(db, 'tag'), TAG_COLORS[0]);
+  // <input type=color> submits lowercase; must still count as used.
+  createTag(db, { name: 'a', color: TAG_COLORS[0].toLowerCase() });
+  assert.equal(suggestColor(db, 'tag'), TAG_COLORS[1]);
 });
