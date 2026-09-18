@@ -4,6 +4,14 @@ import { defaultTask, taskTagIds } from './catalog.js';
 import { getSettings } from './settings.js';
 import type { SessionRow, DecoratedSession } from './types.js';
 
+const DAY = 86400000;
+
+// Civil midnight of a wall-clock-as-UTC value.
+export function civilDayStart(civilMs: number): number {
+  const d = new Date(civilMs);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
 export function getActiveSession(db: Database.Database): SessionRow | undefined {
   return db.prepare('SELECT * FROM session WHERE end_utc IS NULL').get() as SessionRow | undefined;
 }
@@ -13,11 +21,13 @@ function foldPause(active: SessionRow, now: number): number {
   return active.pause_started_at == null ? 0 : now - active.pause_started_at;
 }
 
-export function stopTimer(db: Database.Database, now: number): number | null {
+export function stopTimer(db: Database.Database, now: number, tzMin = 0): number | null {
   const active = getActiveSession(db);
   if (!active) return null;
+  const off = tzMin * 60000;
   updateSession(db, active.id, {
-    endUtc: now,
+    startUtc: active.start_utc! - off,               // freeze real -> civil
+    endUtc: now - off,
     pausedMs: active.paused_ms + foldPause(active, now),
     pauseStartedAt: null,
   });
@@ -27,10 +37,10 @@ export function stopTimer(db: Database.Database, now: number): number | null {
 export function startTimer(
   db: Database.Database,
   now: number,
-  { taskId, description = '' }: { taskId?: number | null; description?: string } = {},
+  { taskId, description = '', tzMin = 0 }: { taskId?: number | null; description?: string; tzMin?: number } = {},
 ): number {
   const tx = db.transaction(() => {
-    stopTimer(db, now);
+    stopTimer(db, now, tzMin);
     const tid = taskId ?? (defaultTask(db)?.id ?? null);
     const id = createSession(db, { taskId: tid, description, startUtc: now, endUtc: null, createdAt: now });
     if (tid) setSessionTags(db, id, taskTagIds(db, tid));
@@ -40,11 +50,11 @@ export function startTimer(
 }
 
 // Start a new running session copying a past one's description, details, task, tags.
-export function startTimerFrom(db: Database.Database, now: number, sourceId: number): number | null {
+export function startTimerFrom(db: Database.Database, now: number, sourceId: number, tzMin = 0): number | null {
   const src = getSession(db, sourceId);
   if (!src) return null;
   const tx = db.transaction(() => {
-    stopTimer(db, now);
+    stopTimer(db, now, tzMin);
     const id = createSession(db, {
       description: src.description, details: src.details, taskId: src.task_id,
       startUtc: now, endUtc: null, createdAt: now,
