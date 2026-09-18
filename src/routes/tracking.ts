@@ -1,6 +1,6 @@
 import express, { Router, Request, Response } from 'express';
 import type Database from 'better-sqlite3';
-import { startTimer, startTimerFrom, pauseTimer, stopTimer, resumeTimer, timerState, getActiveSession } from '../timer.js';
+import { startTimer, startTimerFrom, pauseTimer, stopTimer, resumeTimer, timerState, getActiveSession, splitExpiredDays, civilDayStart } from '../timer.js';
 import { listSessions, decorateSession, updateSession, setSessionTags, distinctDescriptions, latestByDescription } from '../sessions.js';
 import { listTasks, listTags, taskTagIds, listActiveTasksByClient } from '../catalog.js';
 import { getSettings } from '../settings.js';
@@ -129,11 +129,13 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
     res.render('partials/active-timer', activeCtx());
   }
 
-  r.post('/timer/start', (req: Request, res: Response) => { startTimer(db, Date.now()); afterMutation(res); });
+  const tzOf = (req: Request) => Number((req.body as Record<string, unknown>).tz) || 0;
+
+  r.post('/timer/start', (req: Request, res: Response) => { startTimer(db, Date.now(), { tzMin: tzOf(req) }); afterMutation(res); });
   r.post('/timer/pause', (req: Request, res: Response) => { pauseTimer(db, Date.now()); afterMutation(res); });
   r.post('/timer/resume', (req: Request, res: Response) => { resumeTimer(db, Date.now()); afterMutation(res); });
-  r.post('/timer/stop', (req: Request, res: Response) => { stopTimer(db, Date.now()); afterMutation(res); });
-  r.post('/timer/start-from/:id', (req: Request, res: Response) => { startTimerFrom(db, Date.now(), Number(req.params.id)); afterMutation(res); });
+  r.post('/timer/stop', (req: Request, res: Response) => { stopTimer(db, Date.now(), tzOf(req)); afterMutation(res); });
+  r.post('/timer/start-from/:id', (req: Request, res: Response) => { startTimerFrom(db, Date.now(), Number(req.params.id), tzOf(req)); afterMutation(res); });
 
   // Autosave the running editor. When the description changes to a known one,
   // fill still-empty details/task/tags from the most recent matching session
@@ -162,6 +164,26 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
       setSessionTags(db, active.id, tagIds);
     }
     afterMutation(res);
+  });
+
+  // Editable start; no broadcast/swap — the client updates the clock in place.
+  // Clamp to the local calendar day and non-negative elapsed.
+  r.post('/timer/start-time', (req: Request, res: Response) => {
+    const active = getActiveSession(db);
+    const body = req.body as Record<string, unknown>;
+    const start = Number(body.start), tzMin = tzOf(req);
+    if (active && Number.isFinite(start)) {
+      const off = tzMin * 60000, now = Date.now();
+      const lo = civilDayStart(now - off) + off;                        // local midnight today (real)
+      const hi = (active.pause_started_at ?? now) - (active.paused_ms || 0);
+      updateSession(db, active.id, { startUtc: Math.min(hi, Math.max(lo, start)) });
+    }
+    res.status(204).end();
+  });
+
+  r.post('/timer/split', (req: Request, res: Response) => {
+    if (splitExpiredDays(db, Date.now(), tzOf(req))) hub.broadcast('changed');
+    res.status(204).end();
   });
 
   return r;

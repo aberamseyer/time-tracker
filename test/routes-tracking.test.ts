@@ -83,3 +83,30 @@ test('naming running work autocompletes empty fields from history', async () => 
   assert.equal(s.details, 'daily');
   assert.equal(s.task_id, t);
 });
+
+test('timer start-time clamps to [local midnight, now] on real instants', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  await agent.post('/timer/start').type('form').send({ tz: '0' });
+  const id = getActiveSession(db)!.id;
+  const now = Date.now();
+  await agent.post('/timer/start-time').type('form').send({ start: String(now - 2 * 3600000), tz: '0' });
+  assert.equal(getSession(db, id)!.start_utc, now - 2 * 3600000);
+  await agent.post('/timer/start-time').type('form').send({ start: String(now + 3600000), tz: '0' });
+  assert.ok(getSession(db, id)!.start_utc! <= Date.now() + 1000);
+  const midnight = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+  await agent.post('/timer/start-time').type('form').send({ start: String(midnight - 5 * 3600000), tz: '0' });
+  assert.ok(getSession(db, id)!.start_utc! >= midnight);
+});
+
+test('timer split closes an overdue running session', async () => {
+  const { app, db } = makeApp();
+  const agent = request.agent(app);
+  await login(agent, db);
+  createSession(db, { description: 'overnight', startUtc: Date.now() - 2 * 86400000, endUtc: null });
+  const res = await agent.post('/timer/split').type('form').send({ tz: '0' });
+  assert.equal(res.status, 204);
+  const todayMidnight = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+  assert.equal(getActiveSession(db)!.start_utc, todayMidnight);
+});
