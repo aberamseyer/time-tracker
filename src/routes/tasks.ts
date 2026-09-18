@@ -5,6 +5,7 @@ import {
   addTaskTag, removeTaskTag, listTasksByClient,
   listClients, createClient, getClient, updateClient, deleteClient,
 } from '../catalog.js';
+import { DEFAULT_TASK_COLOR } from '../colors.js';
 import type { Hub } from '../types.js';
 
 function rateCents(v: unknown): number | null { return v ? Math.round(Number(v) * 100) : null; }
@@ -39,7 +40,7 @@ export function tasksRouter(db: Database.Database, hub: Hub): Router {
     const body = req.body as Record<string, unknown>;
     const name = ((body.name as string) || '').trim() || 'Untitled';
     updateTask(db, id, {
-      name, details: (body.details as string) || '', color: (body.color as string) || '#3b82f6',
+      name, details: (body.details as string) || '', color: (body.color as string) || DEFAULT_TASK_COLOR,
       hourlyRateCents: rateCents(body.rate), isDefault: !!body.isDefault,
       clientId: body.clientId ? Number(body.clientId) : null,
     });

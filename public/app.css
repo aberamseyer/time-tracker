@@ -58,12 +58,13 @@ legend { color:var(--muted); font-size:.9rem; margin-bottom:.4rem; }
 
 /* Chips (tags) */
 .chips { display:flex; flex-wrap:wrap; gap:.4rem; }
+/* Tag colors are light pastels; use dark text on the fill for contrast. */
 .chip { display:inline-flex; align-items:center; gap:.3rem; padding:.35rem .7rem; border-radius:999px;
-  border:1.5px solid var(--chip); color:var(--chip); background:transparent; cursor:pointer; min-height:0; font-size:.85rem; }
+  border:1.5px solid var(--chip); color:var(--ink); background:transparent; cursor:pointer; min-height:0; font-size:.85rem; }
 .chip input { position:absolute; opacity:0; width:0; height:0; }
-.chip:has(input:checked) { background:var(--chip); color:#fff; }
+.chip:has(input:checked) { background:var(--chip); color:#1a1712; }
 .tag { display:inline-block; padding:.1rem .5rem; border-radius:999px; font-size:.72rem;
-  background:var(--chip); color:#fff; margin-right:.25rem; }
+  background:var(--chip); color:#1a1712; margin-right:.25rem; }
 
 /* Toggles / segmented / radios tied to labels */
 .toggle { display:inline-flex; align-items:center; gap:.4rem; width:auto; padding:.4rem .7rem;

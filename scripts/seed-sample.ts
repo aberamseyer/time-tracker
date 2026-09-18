@@ -3,6 +3,7 @@ import { openDb } from '../src/db.js';
 import { seedUser } from '../src/auth.js';
 import { createClient, createTask, createTag, addTaskTag, updateTask } from '../src/catalog.js';
 import { createSession, setSessionTags } from '../src/sessions.js';
+import { TASK_COLORS, TAG_COLORS } from '../src/colors.js';
 
 // Generates ~a year of completed sessions for a test database.
 // Guards data.sqlite; pass DB_PATH to target another file.
@@ -40,20 +41,20 @@ const clients = [
 ];
 
 const tags = {
-  billable: createTag(db, { name: 'billable', color: '#16a34a' }),
-  internal: createTag(db, { name: 'internal', color: '#6b7280' }),
-  meeting: createTag(db, { name: 'meeting', color: '#f59e0b' }),
-  bug: createTag(db, { name: 'bug', color: '#dc2626' }),
-  research: createTag(db, { name: 'research', color: '#8b5cf6' }),
+  billable: createTag(db, { name: 'billable', color: TAG_COLORS[0] }),
+  internal: createTag(db, { name: 'internal', color: TAG_COLORS[1] }),
+  meeting: createTag(db, { name: 'meeting', color: TAG_COLORS[2] }),
+  bug: createTag(db, { name: 'bug', color: TAG_COLORS[3] }),
+  research: createTag(db, { name: 'research', color: TAG_COLORS[4] }),
 };
 
 // [name, color, rateCents, clientId, defaultTagIds, descriptions]
 const taskSpecs: [string, string, number | null, number | null, number[], string[]][] = [
-  ['Feature work', '#3b82f6', 13000, clients[0], [tags.billable], ['Checkout flow', 'Dashboard widgets', 'Search filters']],
-  ['Bug fixes', '#dc2626', 13000, clients[0], [tags.billable, tags.bug], ['Null crash on load', 'Timezone off-by-one', 'Race in uploader']],
-  ['Client meetings', '#f59e0b', 15000, clients[1], [tags.billable, tags.meeting], ['Weekly sync', 'Scope review', 'Demo call']],
-  ['Internal ops', '#6b7280', null, null, [tags.internal], ['Standup', 'Code review', 'Inbox']],
-  ['Research', '#8b5cf6', null, null, [tags.internal, tags.research], ['Read RFCs', 'Prototype spike', 'Evaluate library']],
+  ['Feature work', TASK_COLORS[0], 13000, clients[0], [tags.billable], ['Checkout flow', 'Dashboard widgets', 'Search filters']],
+  ['Bug fixes', TASK_COLORS[1], 13000, clients[0], [tags.billable, tags.bug], ['Null crash on load', 'Timezone off-by-one', 'Race in uploader']],
+  ['Client meetings', TASK_COLORS[2], 15000, clients[1], [tags.billable, tags.meeting], ['Weekly sync', 'Scope review', 'Demo call']],
+  ['Internal ops', TASK_COLORS[3], null, null, [tags.internal], ['Standup', 'Code review', 'Inbox']],
+  ['Research', TASK_COLORS[4], null, null, [tags.internal, tags.research], ['Read RFCs', 'Prototype spike', 'Evaluate library']],
 ];
 
 const tasks: { id: number; defTags: number[]; descs: string[] }[] = taskSpecs.map(
@@ -63,7 +64,7 @@ const tasks: { id: number; defTags: number[]; descs: string[] }[] = taskSpecs.ma
     return { id, defTags, descs };
   }
 );
-updateTask(db, tasks[0].id, { name: 'Feature work', color: '#3b82f6', hourlyRateCents: 13000, isDefault: true });
+updateTask(db, tasks[0].id, { name: 'Feature work', color: TASK_COLORS[0], hourlyRateCents: 13000, isDefault: true });
 
 const start = new Date();
 start.setUTCHours(0, 0, 0, 0);

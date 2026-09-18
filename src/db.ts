@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { DEFAULT_TASK_COLOR, DEFAULT_TAG_COLOR } from './colors.js';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS user (
@@ -18,7 +19,7 @@ CREATE TABLE IF NOT EXISTS task (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   details TEXT NOT NULL DEFAULT '',
-  color TEXT NOT NULL DEFAULT '#3b82f6',
+  color TEXT NOT NULL DEFAULT '${DEFAULT_TASK_COLOR}',
   hourly_rate_cents INTEGER,
   client_id INTEGER REFERENCES client(id) ON DELETE SET NULL,
   is_default INTEGER NOT NULL DEFAULT 0,
@@ -27,7 +28,7 @@ CREATE TABLE IF NOT EXISTS task (
 CREATE TABLE IF NOT EXISTS tag (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
-  color TEXT NOT NULL DEFAULT '#6b7280',
+  color TEXT NOT NULL DEFAULT '${DEFAULT_TAG_COLOR}',
   archived INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS task_tag (
