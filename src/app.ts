@@ -9,6 +9,7 @@ import { sessionsRouter } from './routes/sessions.js';
 import { tasksRouter } from './routes/tasks.js';
 import { settingsRouter } from './routes/settings.js';
 import { analyticsRouter } from './routes/analytics.js';
+import { version } from './version.js';
 import type { Hub } from './types.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,7 @@ export function createApp({ db, hub }: { db: Database.Database; hub: Hub }) {
   app.use(buildSessionMiddleware(db));
   app.locals.db = db;
   app.locals.hub = hub;
+  app.locals.version = version;
 
   app.get('/health', (req, res) => res.json({ ok: true }));
   app.use(authRouter(db));

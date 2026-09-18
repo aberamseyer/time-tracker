@@ -25,6 +25,7 @@
     ${tagsBlock}
     <form method="post" action="/logout" class="logout-form">
       <button class="danger">Log out</button>
-    </form>`;
+    </form>
+    <footer class="version">${version.hash} · ${new Date(version.builtAt).toLocaleString()}</footer>`;
 %>
 <%- include('layout', { title, nav, body }) %>

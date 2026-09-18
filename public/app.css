@@ -181,6 +181,7 @@ legend { color:var(--muted); font-size:.9rem; margin-bottom:.4rem; }
 .an-controls .segmented { flex:0 1 auto; }
 .an-controls > select { flex:0 1 auto; width:auto; min-height:var(--tap); }
 .an-export-note { color:var(--muted); font-size:.85rem; }
+.version { margin-top:2rem; text-align:center; color:var(--muted); font-size:.75rem; }
 .an-periods { display:flex; gap:.4rem; overflow-x:auto; padding-bottom:.4rem; margin-bottom:1rem; }
 .an-periods button { flex:0 0 auto; min-height:38px; padding:.35rem .85rem; white-space:nowrap; }
 .an-periods button.sel { background:var(--accent); color:#fff; }

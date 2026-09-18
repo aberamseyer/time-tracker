@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title><%= title %></title>
-  <link rel="stylesheet" href="/app.css">
-  <script src="/vendor/htmx.min.js" defer></script>
-  <script src="/app.js" defer></script>
-  <script src="/vendor/alpine.min.js" defer></script>
+  <% const v = version.hash %>
+  <link rel="stylesheet" href="/app.css?v=<%= v %>">
+  <script src="/vendor/htmx.min.js?v=<%= v %>" defer></script>
+  <script src="/app.js?v=<%= v %>" defer></script>
+  <script src="/vendor/alpine.min.js?v=<%= v %>" defer></script>
 </head>
 <body class="<%= (typeof nav !== 'undefined' && nav) ? 'app' : 'auth' %>">
   <% if (typeof nav !== 'undefined' && nav) { %>
