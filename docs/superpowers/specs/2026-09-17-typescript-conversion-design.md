@@ -74,12 +74,19 @@ devDeps to add (verify built-in types before adding a `@types` package):
 
 ## Deploy changes
 
-- VPS runs `npm ci --omit=dev`, so `tsc` is absent there. Build on the
-  self-hosted runner before rsync: add `npm ci && npm run build` to the deploy
-  job; rsync then includes `dist/`.
+Build once in the cloud, ship the tested artifact — the runner never needs `tsc`.
+
+- **Cloud `test` job:** already runs `npm test`, which builds `dist/` first
+  (typecheck enforced automatically). Add an `actions/upload-artifact` step
+  publishing `dist/`.
+- **Self-hosted `deploy` job** (`needs: test`): `actions/checkout` for the source
+  tree, then `actions/download-artifact` to restore `dist/` at repo root, then
+  rsync as today (now including `dist/`). No build step, no `node_modules`, no
+  `tsc` on the runner.
+- `dist/` is self-contained (views + `public/` copied in), so rsync ships a
+  complete runtime. Verify the download lands at repo-root `dist/` before rsync.
+- Determinism: the commit that passed `test` is byte-for-byte what deploys.
 - `deploy/time-tracker.service` `ExecStart` → `node dist/src/server.js`.
-- Cloud `test` job already runs `npm test`, which now builds first — typecheck
-  enforced automatically.
 - `.gitignore` adds `dist/`.
 
 ## Conversion order
