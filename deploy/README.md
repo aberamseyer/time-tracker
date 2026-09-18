@@ -16,17 +16,21 @@ against. Upgrading LTS needs no server edits.
 
 ## One-time VPS setup
 
-1. Clone and configure (no build needed here; `dist/` ships from CI):
+1. Clone, bootstrap-build once, and seed:
    ```
    git clone git@github.com:aberamseyer/time-tracker.git ~/time-tracker
    cd ~/time-tracker
    nvm install                      # installs LTS per .nvmrc
    mkdir -p ~/bin
    ln -sfn "$(readlink -f "$(nvm which current)")" ~/bin/tt-node
-   npm ci --omit=dev
+   npm ci                           # full install incl. devDeps, for this one-time build
+   npm run build                    # produce dist/ (recurring deploys ship dist/ from CI instead)
    cp .env.example .env             # or create it; set TT_USERNAME/PASSWORD, PORT, session secret
    npm run seed                     # create the login user
    ```
+   Recurring deploys run `npm ci --omit=dev` on the VPS (already in the
+   workflow) and never build there — CI ships the compiled `dist/`. The full
+   `npm ci && npm run build` above is only for this first-time bootstrap.
 
 2. Install the service (edit placeholders first):
    ```
