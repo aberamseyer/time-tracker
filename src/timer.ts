@@ -1,17 +1,19 @@
+import type Database from 'better-sqlite3';
 import { createSession, getSession, updateSession, decorateSession, setSessionTags } from './sessions.js';
 import { defaultTask, taskTagIds } from './catalog.js';
 import { getSettings } from './settings.js';
+import type { SessionRow, DecoratedSession } from './types.js';
 
-export function getActiveSession(db) {
-  return db.prepare('SELECT * FROM session WHERE end_utc IS NULL').get();
+export function getActiveSession(db: Database.Database): SessionRow | undefined {
+  return db.prepare('SELECT * FROM session WHERE end_utc IS NULL').get() as SessionRow | undefined;
 }
 
-function foldPause(active, now) {
+function foldPause(active: SessionRow, now: number): number {
   // returns extra paused_ms to add if currently paused
   return active.pause_started_at == null ? 0 : now - active.pause_started_at;
 }
 
-export function stopTimer(db, now) {
+export function stopTimer(db: Database.Database, now: number): number | null {
   const active = getActiveSession(db);
   if (!active) return null;
   updateSession(db, active.id, {
@@ -22,7 +24,11 @@ export function stopTimer(db, now) {
   return active.id;
 }
 
-export function startTimer(db, now, { taskId, description = '' } = {}) {
+export function startTimer(
+  db: Database.Database,
+  now: number,
+  { taskId, description = '' }: { taskId?: number | null; description?: string } = {},
+): number {
   const tx = db.transaction(() => {
     stopTimer(db, now);
     const tid = taskId ?? (defaultTask(db)?.id ?? null);
@@ -34,7 +40,7 @@ export function startTimer(db, now, { taskId, description = '' } = {}) {
 }
 
 // Start a new running session copying a past one's description, details, task, tags.
-export function startTimerFrom(db, now, sourceId) {
+export function startTimerFrom(db: Database.Database, now: number, sourceId: number): number | null {
   const src = getSession(db, sourceId);
   if (!src) return null;
   const tx = db.transaction(() => {
@@ -49,14 +55,14 @@ export function startTimerFrom(db, now, sourceId) {
   return tx();
 }
 
-export function pauseTimer(db, now) {
+export function pauseTimer(db: Database.Database, now: number): number | null {
   const active = getActiveSession(db);
   if (!active || active.pause_started_at != null) return active ? active.id : null;
   updateSession(db, active.id, { pauseStartedAt: now });
   return active.id;
 }
 
-export function resumeTimer(db, now) {
+export function resumeTimer(db: Database.Database, now: number): number | null {
   const active = getActiveSession(db);
   if (!active || active.pause_started_at == null) return active ? active.id : null;
   updateSession(db, active.id, {
@@ -66,9 +72,12 @@ export function resumeTimer(db, now) {
   return active.id;
 }
 
-export function timerState(db, now) {
+export function timerState(
+  db: Database.Database,
+  now: number,
+): { state: 'none' | 'paused' | 'running'; session: DecoratedSession | null; elapsedMs: number } {
   const active = getActiveSession(db);
   if (!active) return { state: 'none', session: null, elapsedMs: 0 };
-  const session = decorateSession(db, getSession(db, active.id), now, getSettings(db).rounding_minutes);
+  const session = decorateSession(db, getSession(db, active.id)!, now, getSettings(db).rounding_minutes);
   return { state: session.paused ? 'paused' : 'running', session, elapsedMs: session.durationMs };
 }

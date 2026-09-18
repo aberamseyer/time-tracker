@@ -45,6 +45,11 @@ export interface SessionFilter {
   from?: number; to?: number;
 }
 
+export interface Bucket { start: number; label: string; }
+export interface Series { key: string; name: string; color: string; values: number[]; total: number; }
+export interface Report { buckets: Bucket[]; series: Series[]; grandTotal: number; metric: string; by: string; }
+export interface Period { type: string; start: number; from: number; to: number; unit: 'day' | 'week'; label: string; }
+
 export interface Hub {
   clients: Set<WebSocket>;
   handleConnection(ws: WebSocket): void;
