@@ -50,6 +50,11 @@ export interface Series { key: string; name: string; color: string; values: numb
 export interface Report { buckets: Bucket[]; series: Series[]; grandTotal: number; metric: string; by: string; }
 export interface Period { type: string; start: number; from: number; to: number; unit: 'day' | 'week'; label: string; }
 
+export interface SessionGroup {
+  key: string; anchor: number; label: string;
+  sessions: DecoratedSession[]; totalMs: number; totalCents: number;
+}
+
 export interface Hub {
   clients: Set<WebSocket>;
   handleConnection(ws: WebSocket): void;
