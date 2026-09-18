@@ -23,8 +23,8 @@ function rand() {
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
-const pick = (a) => a[Math.floor(rand() * a.length)];
-const between = (lo, hi) => lo + Math.floor(rand() * (hi - lo + 1));
+const pick = <T,>(a: T[]): T => a[Math.floor(rand() * a.length)];
+const between = (lo: number, hi: number): number => lo + Math.floor(rand() * (hi - lo + 1));
 
 const db = openDb(path);
 
@@ -48,7 +48,7 @@ const tags = {
 };
 
 // [name, color, rateCents, clientId, defaultTagIds, descriptions]
-const taskSpecs = [
+const taskSpecs: [string, string, number | null, number | null, number[], string[]][] = [
   ['Feature work', '#3b82f6', 13000, clients[0], [tags.billable], ['Checkout flow', 'Dashboard widgets', 'Search filters']],
   ['Bug fixes', '#dc2626', 13000, clients[0], [tags.billable, tags.bug], ['Null crash on load', 'Timezone off-by-one', 'Race in uploader']],
   ['Client meetings', '#f59e0b', 15000, clients[1], [tags.billable, tags.meeting], ['Weekly sync', 'Scope review', 'Demo call']],
@@ -56,11 +56,13 @@ const taskSpecs = [
   ['Research', '#8b5cf6', null, null, [tags.internal, tags.research], ['Read RFCs', 'Prototype spike', 'Evaluate library']],
 ];
 
-const tasks = taskSpecs.map(([name, color, rate, clientId, defTags, descs]) => {
-  const id = createTask(db, { name, color, hourlyRateCents: rate, clientId });
-  for (const t of defTags) addTaskTag(db, id, t);
-  return { id, defTags, descs };
-});
+const tasks: { id: number; defTags: number[]; descs: string[] }[] = taskSpecs.map(
+  ([name, color, rate, clientId, defTags, descs]) => {
+    const id = createTask(db, { name, color, hourlyRateCents: rate, clientId });
+    for (const t of defTags) addTaskTag(db, id, t);
+    return { id, defTags, descs };
+  }
+);
 updateTask(db, tasks[0].id, { name: 'Feature work', color: '#3b82f6', hourlyRateCents: 13000, isDefault: true });
 
 const start = new Date();

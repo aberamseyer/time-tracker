@@ -1,6 +1,7 @@
-import express from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import type Database from 'better-sqlite3';
 import { buildSessionMiddleware, requireAuth } from './auth.js';
 import { authRouter } from './routes/auth.js';
 import { trackingRouter } from './routes/tracking.js';
@@ -8,10 +9,11 @@ import { sessionsRouter } from './routes/sessions.js';
 import { tasksRouter } from './routes/tasks.js';
 import { settingsRouter } from './routes/settings.js';
 import { analyticsRouter } from './routes/analytics.js';
+import type { Hub } from './types.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
-export function createApp({ db, hub }) {
+export function createApp({ db, hub }: { db: Database.Database; hub: Hub }) {
   const app = express();
   app.set('trust proxy', 1); // behind nginx; honor X-Forwarded-Proto for secure cookies
   app.set('view engine', 'ejs');
@@ -31,8 +33,8 @@ export function createApp({ db, hub }) {
   app.use(requireAuth, analyticsRouter(db));
 
   // eslint-disable-next-line no-unused-vars
-  app.use((err, req, res, next) => {
-    const status = err.status || 500;
+  app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+    const status = (err as { status?: number }).status || 500;
     if (req.get('HX-Request')) {
       return res.status(status).render('partials/error', { message: 'Something went wrong' });
     }

@@ -1,5 +1,8 @@
 import 'dotenv/config';
 import http from 'node:http';
+import type { IncomingMessage } from 'node:http';
+import type { Duplex } from 'node:stream';
+import type { Request, Response } from 'express';
 import { WebSocketServer } from 'ws';
 import { openDb } from './db.js';
 import { createApp } from './app.js';
@@ -18,10 +21,11 @@ const server = http.createServer(app);
 const sessionMw = buildSessionMiddleware(db);
 const wss = new WebSocketServer({ noServer: true });
 
-server.on('upgrade', (req, socket, head) => {
-  if (!req.url.startsWith('/ws')) return socket.destroy();
-  sessionMw(req, {}, () => {
-    if (!req.session || !req.session.userId) return socket.destroy();
+server.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+  if (!req.url?.startsWith('/ws')) return socket.destroy();
+  sessionMw(req as unknown as Request, {} as Response, () => {
+    const session = (req as unknown as { session?: { userId?: number } }).session;
+    if (!session || !session.userId) return socket.destroy();
     wss.handleUpgrade(req, socket, head, (ws) => hub.handleConnection(ws));
   });
 });
