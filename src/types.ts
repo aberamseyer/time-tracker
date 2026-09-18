@@ -15,6 +15,8 @@ export interface TaskRow {
 
 export interface TagRow { id: number; name: string; color: string; archived: number; }
 
+export interface ClientGroup { client: ClientRow | null; tasks: TaskRow[]; }
+
 export interface SessionRow {
   id: number; description: string; details: string; task_id: number | null;
   created_at: number; start_utc: number | null; end_utc: number | null;
