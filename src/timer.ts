@@ -82,6 +82,34 @@ export function resumeTimer(db: Database.Database, now: number): number | null {
   return active.id;
 }
 
+// Keep the running session inside its local calendar day.
+export function splitExpiredDays(db: Database.Database, now: number, tzMin: number): boolean {
+  const off = tzMin * 60000;
+  const nowDay = civilDayStart(now - off);
+  let changed = false;
+  let active = getActiveSession(db);
+  while (active) {
+    const startCivil = active.start_utc! - off;
+    const dayStart = civilDayStart(startCivil);
+    if (nowDay <= dayStart) break;                    // still the same local day
+    const boundaryReal = (dayStart + DAY) + off;      // real instant of next local midnight
+    const paused = active.paused_ms +
+      (active.pause_started_at != null ? Math.max(0, boundaryReal - active.pause_started_at) : 0);
+    updateSession(db, active.id, {
+      startUtc: startCivil, endUtc: dayStart + DAY - 1, pausedMs: paused, pauseStartedAt: null,
+    });
+    const src = getSession(db, active.id)!;
+    const id = createSession(db, {
+      description: src.description, details: src.details, taskId: src.task_id,
+      startUtc: boundaryReal, endUtc: null, createdAt: boundaryReal,
+    });
+    setSessionTags(db, id, src.tags.map(t => t.id));
+    changed = true;
+    active = getActiveSession(db);
+  }
+  return changed;
+}
+
 export function timerState(
   db: Database.Database,
   now: number,
