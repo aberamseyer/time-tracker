@@ -98,9 +98,9 @@ legend { color:var(--muted); font-size:.9rem; margin-bottom:.4rem; }
 .qa { flex:0 0 auto; padding:.5rem .9rem; }
 
 .logout-form { margin-top:2rem; }
-.session-row.editing { display:grid; gap:.6rem; padding:.85rem; border-top:1px solid var(--line); }
+.session-row.editing { display:grid; grid-template-columns:minmax(0,1fr); gap:.6rem; padding:.85rem; border-top:1px solid var(--line); }
 .time-row { display:flex; gap:.6rem; }
-.time-row label { display:grid; gap:.2rem; font-size:.8rem; color:var(--muted); }
+.time-row label { display:grid; grid-template-columns:minmax(0,1fr); gap:.2rem; font-size:.8rem; color:var(--muted); flex:1 1 0; min-width:0; }
 
 /* Time toolbar + filters. Sticks to top; the timer scrolls away above it. */
 .time-toolbar { display:flex; gap:.5rem; align-items:flex-start; flex-wrap:wrap;
