@@ -12,8 +12,8 @@ test('startTimerFrom copies description, details, task and tags', () => {
   const tag = createTag(db, { name: 'urgent' });
   const src = createSession(db, { description: 'Bug fix', details: 'null ptr', taskId: t, startUtc: 1, endUtc: 2 });
   setSessionTags(db, src, [tag]);
-  const id = startTimerFrom(db, Date.now(), src);
-  const s = getSession(db, id);
+  const id = startTimerFrom(db, Date.now(), src)!;
+  const s = getSession(db, id)!;
   assert.equal(s.description, 'Bug fix');
   assert.equal(s.details, 'null ptr');
   assert.equal(s.task_id, t);
@@ -28,7 +28,7 @@ test('start-from route starts new running session', async () => {
   const src = createSession(db, { description: 'Prev', startUtc: 1, endUtc: 2 });
   const res = await agent.post(`/timer/start-from/${src}`);
   assert.equal(res.status, 200);
-  const active = getActiveSession(db);
+  const active = getActiveSession(db)!;
   assert.ok(active);
-  assert.equal(getSession(db, active.id).description, 'Prev');
+  assert.equal(getSession(db, active.id)!.description, 'Prev');
 });

@@ -4,7 +4,7 @@ import { openDb } from '../src/db.js';
 
 test('migrations create all tables (no segment)', () => {
   const db = openDb(':memory:');
-  const names = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r => r.name);
+  const names = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r => (r as { name: string }).name);
   for (const t of ['user','client','task','tag','session','session_tag','settings']) {
     assert.ok(names.includes(t), `missing table ${t}`);
   }
@@ -13,7 +13,7 @@ test('migrations create all tables (no segment)', () => {
 
 test('settings row seeded with defaults', () => {
   const db = openDb(':memory:');
-  const s = db.prepare('SELECT * FROM settings WHERE id = 1').get();
+  const s = db.prepare('SELECT * FROM settings WHERE id = 1').get() as { rounding_minutes: number };
   assert.equal(s.rounding_minutes, 0);
 });
 

@@ -6,7 +6,7 @@ import { createSession, setSessionTags } from '../src/sessions.js';
 import { createTask, createTag, createClient } from '../src/catalog.js';
 
 const DAY = 86400000;
-const day = (n) => Date.UTC(2026, 0, 1) + n * DAY; // Jan 1 2026 + n days
+const day = (n: number) => Date.UTC(2026, 0, 1) + n * DAY; // Jan 1 2026 + n days
 
 test('report groups working time by task per day', () => {
   const db = makeTestDb();
@@ -17,9 +17,9 @@ test('report groups working time by task per day', () => {
   assert.equal(rep.buckets.length, 2);
   const dev = rep.series.find(s => s.name === 'Dev');
   const none = rep.series.find(s => s.name === 'No task');
-  assert.equal(dev.values[0], 3600000);
-  assert.equal(dev.total, 3600000);
-  assert.equal(none.values[1], 1800000);
+  assert.equal(dev!.values[0], 3600000);
+  assert.equal(dev!.total, 3600000);
+  assert.equal(none!.values[1], 1800000);
   assert.equal(rep.grandTotal, 3600000 + 1800000);
 });
 

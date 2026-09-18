@@ -24,10 +24,10 @@ test('manual create requires start and end', async () => {
   await login(agent, db);
   const bad = await agent.post('/sessions').type('form').send({ description: 'x', start: '2026-09-15T09:00' });
   assert.equal(bad.status, 400);
-  assert.equal(db.prepare('SELECT COUNT(*) c FROM session').get().c, 0);
+  assert.equal((db.prepare('SELECT COUNT(*) c FROM session').get() as { c: number }).c, 0);
   const ok = await agent.post('/sessions').type('form').send({ description: 'Call', start: '2026-09-15T09:00', end: '2026-09-15T10:00' });
   assert.equal(ok.status, 200);
-  const s = db.prepare('SELECT * FROM session').get();
+  const s = db.prepare('SELECT * FROM session').get() as { start_utc: number; end_utc: number };
   assert.equal(s.start_utc, Date.parse('2026-09-15T09:00Z'));
   assert.equal(s.end_utc, Date.parse('2026-09-15T10:00Z'));
 });
@@ -43,7 +43,7 @@ test('edit updates fields and times, returns re-editable row', async () => {
     .send({ description: 'Fixed', taskId: String(t), tagId: String(tag), start: '2026-09-15T09:30', end: '2026-09-15T10:30' });
   assert.equal(res.status, 200);
   assert.match(res.text, new RegExp(`hx-get="/sessions/${id}/edit"`));
-  const s = getSession(db, id);
+  const s = getSession(db, id)!;
   assert.equal(s.description, 'Fixed');
   assert.equal(s.start_utc, Date.parse('2026-09-15T09:30Z'));
 });

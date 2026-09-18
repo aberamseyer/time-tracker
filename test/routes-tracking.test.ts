@@ -8,8 +8,8 @@ import { createTask } from '../src/catalog.js';
 import { updateSettings } from '../src/settings.js';
 
 test('start creates a running session and broadcasts', async () => {
-  const events = [];
-  const { app, db } = makeApp({ hub: { broadcast: (t) => events.push(t || 'changed'), handleConnection() {} } });
+  const events: string[] = [];
+  const { app, db } = makeApp({ hub: { broadcast: (t?: string) => events.push(t || 'changed'), handleConnection() {} } });
   const agent = request.agent(app);
   await login(agent, db);
   const res = await agent.post('/timer/start');
@@ -35,10 +35,10 @@ test('edit while running updates description and task', async () => {
   await login(agent, db);
   const t = createTask(db, { name: 'Paid' });
   await agent.post('/timer/start');
-  const id = getActiveSession(db).id;
+  const id = getActiveSession(db)!.id;
   const res = await agent.post('/timer/update').type('form').send({ description: 'Live edit', taskId: String(t) });
   assert.equal(res.status, 200);
-  const s = getSession(db, id);
+  const s = getSession(db, id)!;
   assert.equal(s.description, 'Live edit');
   assert.equal(s.task_id, t);
 });
@@ -76,10 +76,10 @@ test('naming running work autocompletes empty fields from history', async () => 
   const t = createTask(db, { name: 'Dev' });
   createSession(db, { description: 'Standup', details: 'daily', taskId: t, startUtc: 1, endUtc: 2 });
   await agent.post('/timer/start');
-  const id = getActiveSession(db).id;
+  const id = getActiveSession(db)!.id;
   // only description sent; details/task empty -> filled from template
   await agent.post('/timer/update').type('form').send({ description: 'Standup', details: '', taskId: '' });
-  const s = getSession(db, id);
+  const s = getSession(db, id)!;
   assert.equal(s.details, 'daily');
   assert.equal(s.task_id, t);
 });

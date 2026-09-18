@@ -40,10 +40,10 @@ test('tags create and list', () => {
 
 test('new tasks auto-assign distinct palette colors', () => {
   const db = openDb(':memory:');
-  const colors = [];
+  const colors: string[] = [];
   for (let i = 0; i < TASK_COLORS.length; i++) {
     const id = createTask(db, { name: 'T' + i });
-    colors.push(listTasks(db).find(t => t.id === id).color);
+    colors.push(listTasks(db).find(t => t.id === id)!.color);
   }
   assert.deepEqual(colors, TASK_COLORS);          // cycles the palette in order
 });
@@ -51,20 +51,20 @@ test('new tasks auto-assign distinct palette colors', () => {
 test('new tags auto-assign from the tag palette', () => {
   const db = openDb(':memory:');
   const id = createTag(db, { name: 'first' });
-  assert.equal(getTag(db, id).color, TAG_COLORS[0]);
+  assert.equal(getTag(db, id)!.color, TAG_COLORS[0]);
 });
 
 test('explicit color overrides palette', () => {
   const db = openDb(':memory:');
   const id = createTag(db, { name: 'x', color: '#123456' });
-  assert.equal(getTag(db, id).color, '#123456');
+  assert.equal(getTag(db, id)!.color, '#123456');
 });
 
 test('client create, get, update', () => {
   const db = openDb(':memory:');
   const id = createClient(db, { name: 'Acme' });
   updateClient(db, id, { name: 'Acme Inc', defaultRateCents: 12000, currency: 'EUR', address: '1 St' });
-  const c = getClient(db, id);
+  const c = getClient(db, id)!;
   assert.equal(c.name, 'Acme Inc');
   assert.equal(c.default_rate_cents, 12000);
   assert.equal(c.currency, 'EUR');
@@ -79,7 +79,7 @@ test('deleting a client moves its tasks to No client', () => {
   assert.equal(getClient(db, c), undefined);
   const groups = listTasksByClient(db);
   const none = groups.find(g => g.client === null);
-  assert.ok(none.tasks.some(x => x.id === t));
+  assert.ok(none!.tasks.some(x => x.id === t));
 });
 
 test('listTasksByClient groups tasks, No client last', () => {
@@ -101,5 +101,5 @@ test('updateTask reassigns a task to another client', () => {
   const t = createTask(db, { name: 'Job', clientId: a });
   updateTask(db, t, { name: 'Job', color: '#111111', clientId: null });
   const none = listTasksByClient(db).find(g => g.client === null);
-  assert.ok(none.tasks.some(x => x.id === t));
+  assert.ok(none!.tasks.some(x => x.id === t));
 });
