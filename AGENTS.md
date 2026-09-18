@@ -18,7 +18,7 @@ Env: `DB_PATH` (default `data.sqlite`), `PORT`, `SESSION_SECRET` (required when 
 
 ## Architecture
 
-Single-user time tracker. Express + EJS server-rendered HTML, htmx for partial updates, Alpine for the running clock, WebSocket for live cross-tab sync. SQLite via `better-sqlite3` (synchronous). ES modules throughout (`"type": "module"`).
+Single-user time tracker. Express + EJS server-rendered HTML, htmx for partial updates, vanilla JS for the running clock, WebSocket for live cross-tab sync. SQLite via `better-sqlite3` (synchronous). ES modules throughout (`"type": "module"`).
 
 **TypeScript build.** Source is strict TypeScript (`src/`, `test/`, `scripts/`) compiled by `tsc` (NodeNext) to `dist/`; `views/` and `public/` are copied alongside so `dist/` is self-contained and runnable on its own. Import specifiers use the compiled `.js` extension (e.g. `import { openDb } from './db.js'`) even though the source files are `.ts` — NodeNext module resolution requires this. Never edit files under `dist/`; edit the `.ts` source and rebuild.
 

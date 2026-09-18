@@ -2,9 +2,9 @@
      hx-get="/partials/active-timer" hx-trigger="tt:changed from:body" hx-swap="outerHTML">
   <% if (state.state !== 'none') { const s = state.session; %>
     <div class="timer-card <%= state.state %>">
-      <div class="timer-head" x-data="clock(<%= state.elapsedMs %>, <%= state.state === 'running' %>)">
+      <div class="timer-head">
         <span class="dot"></span>
-        <span class="elapsed" x-text="text"></span>
+        <span class="elapsed" data-elapsed="<%= state.elapsedMs %>" data-running="<%= state.state === 'running' %>"></span>
         <div class="timer-controls">
           <% if (state.state === 'running') { %>
             <form hx-post="/timer/pause" hx-target="#active-timer" hx-swap="outerHTML"><button class="pause">Pause</button></form>

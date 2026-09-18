@@ -1,4 +1,4 @@
-// Live-sync client: WS -> htmx refresh; Alpine running clock.
+// Live-sync client: WS -> htmx refresh; running clock.
 (function () {
   function connect() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -27,19 +27,27 @@
   }
   trackStuckTop();
 
-  document.addEventListener('alpine:init', () => {
-    window.Alpine.data('clock', (elapsedMs, running) => ({
-      text: '',
-      init() {
-        const origin = Date.now() - elapsedMs;
-        const render = (ms) => {
-          const s = Math.max(0, Math.floor(ms / 1000));
-          const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-          this.text = (h ? h + ':' : '') + String(m).padStart(h ? 2 : 1, '0') + ':' + String(sec).padStart(2, '0');
-        };
-        render(elapsedMs);
-        if (running) setInterval(() => render(Date.now() - origin), 1000);
-      },
-    }));
+  // Running clock: tick the active timer's elapsed span.
+  let clockTimer = null;
+  function initClock() {
+    if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
+    const el = document.querySelector('.elapsed[data-elapsed]');
+    if (!el) return;
+    const elapsedMs = Number(el.dataset.elapsed);
+    const running = el.dataset.running === 'true';
+    const origin = Date.now() - elapsedMs;
+    const render = (ms) => {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      el.textContent = (h ? h + ':' : '') + String(m).padStart(h ? 2 : 1, '0') + ':' + String(sec).padStart(2, '0');
+    };
+    render(elapsedMs);
+    if (running) clockTimer = setInterval(() => render(Date.now() - origin), 1000);
+  }
+  // Re-init only when the swap replaced the active timer.
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    const t = e.target;
+    if (t && (t.matches?.('#active-timer') || t.querySelector?.('.elapsed[data-elapsed]'))) initClock();
   });
+  initClock();
 })();

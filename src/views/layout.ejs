@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="/app.css?v=<%= v %>">
   <script src="/vendor/htmx.min.js?v=<%= v %>" defer></script>
   <script src="/app.js?v=<%= v %>" defer></script>
-  <script src="/vendor/alpine.min.js?v=<%= v %>" defer></script>
 </head>
 <body class="<%= (typeof nav !== 'undefined' && nav) ? 'app' : 'auth' %>">
   <% if (typeof nav !== 'undefined' && nav) { %>

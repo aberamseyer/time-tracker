@@ -1,11 +1,11 @@
-<section class="client-group" x-data="{ open: true }">
-  <header>
-    <span class="chev" :class="open && 'open'" @click="open = !open"><%- include('icon', { name:'chevron' }) %></span>
-    <span class="cname" @click="open = !open"><%= group.client ? group.client.name : 'No client' %></span>
+<details class="client-group" open>
+  <summary>
+    <span class="chev"><%- include('icon', { name:'chevron' }) %></span>
+    <span class="cname"><%= group.client ? group.client.name : 'No client' %></span>
     <% if (group.client && group.client.default_rate_cents != null) { %>
       <span class="crate"><%= group.client.currency %> <%= (group.client.default_rate_cents / 100).toFixed(0) %>/h</span>
     <% } %>
-    <div class="cg-actions">
+    <div class="cg-actions" onclick="event.stopPropagation()">
       <% if (group.client) { %>
         <button type="button" title="Edit client" class="cg-edit"
                 hx-get="/clients/<%= group.client.id %>/edit" hx-target="closest .client-group" hx-swap="outerHTML"><%- include('icon', { name:'edit' }) %></button>
@@ -14,12 +14,12 @@
               hx-vals='{"clientId": "<%= group.client ? group.client.id : '' %>"}'
               hx-target="#task-list" hx-swap="outerHTML">+ Task</button>
     </div>
-  </header>
-  <div class="cg-tasks" x-show="open">
+  </summary>
+  <div class="cg-tasks">
     <% if (!group.tasks.length) { %>
       <p class="empty">No tasks yet.</p>
     <% } else { group.tasks.forEach(t => { %>
       <%- include('task-row', { t }) %>
     <% }) } %>
   </div>
-</section>
+</details>

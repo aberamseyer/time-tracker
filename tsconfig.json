@@ -15,5 +15,5 @@
     "declaration": false
   },
   "include": ["src/**/*", "test/**/*", "scripts/**/*"],
-  "exclude": ["node_modules", "dist", "scripts/copy-assets.js"]
+  "exclude": ["node_modules", "dist", "scripts/copy-assets.js", "scripts/dev.js"]
 }

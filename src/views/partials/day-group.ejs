@@ -1,10 +1,10 @@
-<section class="day-group" x-data="{ open: true }">
-  <header @click="open = !open">
-    <span class="chev" :class="open && 'open'"><%- include('icon', { name:'chevron' }) %></span>
+<details class="day-group" open>
+  <summary>
+    <span class="chev"><%- include('icon', { name:'chevron' }) %></span>
     <span class="label"><%= g.label %></span>
     <span class="totals"><%= fmtMoney(g.totalCents) %> · <%= fmtDuration(g.totalMs) %></span>
-  </header>
-  <div class="rows" x-show="open">
+  </summary>
+  <div class="rows">
     <% g.sessions.forEach(s => { %><%- include('session-row', { s, fmtDuration }) %><% }) %>
   </div>
-</section>
+</details>
