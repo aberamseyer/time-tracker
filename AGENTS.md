@@ -8,9 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` — compile `src/`/`test/`/`scripts/` (TypeScript) to `dist/` and copy `views`/`public`.
 - `npm run typecheck` — `tsc --noEmit`, no build output.
 - `node --test dist/test/timer.test.js` — run one compiled test file (run `npm run build` first).
-- `node --test --test-name-pattern="pause then resume"` — run tests matching a name.
+- `node --test --test-name-pattern="pause then resume" "dist/test/**/*.test.js"` — run tests matching a name.
 - `npm start` — run the server (`dist/src/server.js`), default port 3000.
-- `npm run seed` — create/update the single login user; requires `TT_USERNAME` and `TT_PASSWORD` env vars.
+- `npm run seed` — create/update the single login user (runs `dist/scripts/seed-user.js`; `npm run build` first); requires `TT_USERNAME` and `TT_PASSWORD` env vars.
+
+Always pass an explicit `dist/test/...` path (or use `npm test`). Bare `node --test` auto-discovers the `.ts` sources, whose `.js` import specifiers Node cannot resolve without compiling — it errors with `ERR_MODULE_NOT_FOUND` and hangs.
 
 Env: `DB_PATH` (default `data.sqlite`), `PORT`, `SESSION_SECRET` (required when `NODE_ENV=production`), `TT_USERNAME`/`TT_PASSWORD` (seed only). Loaded via `dotenv` from `.env`.
 
@@ -19,6 +21,17 @@ Env: `DB_PATH` (default `data.sqlite`), `PORT`, `SESSION_SECRET` (required when 
 Single-user time tracker. Express + EJS server-rendered HTML, htmx for partial updates, Alpine for the running clock, WebSocket for live cross-tab sync. SQLite via `better-sqlite3` (synchronous). ES modules throughout (`"type": "module"`).
 
 **TypeScript build.** Source is strict TypeScript (`src/`, `test/`, `scripts/`) compiled by `tsc` (NodeNext) to `dist/`; `views/` and `public/` are copied alongside so `dist/` is self-contained and runnable on its own. Import specifiers use the compiled `.js` extension (e.g. `import { openDb } from './db.js'`) even though the source files are `.ts` — NodeNext module resolution requires this. Never edit files under `dist/`; edit the `.ts` source and rebuild.
+
+**TypeScript conventions.**
+
+- Strict mode (`strict: true`). No implicit `any`; `noUncheckedIndexedAccess` is off.
+- Edit `.ts` source and rebuild; never touch `dist/`.
+- Imports use `.js` specifiers resolving to the `.ts` source (NodeNext). Keep this in new files.
+- Domain and row types live in `src/types.ts`: one interface per table plus derived shapes (`HydratedSession`, `DecoratedSession`, `SessionFilter`, `ClientGroup`, `Report`, `Period`, `SessionGroup`, `Hub`). Nullable columns are `T | null`, integer flags are `number`.
+- `better-sqlite3` returns `unknown`; cast at the call site: `.get() as SessionRow | undefined`, `.all() as TagRow[]`, `run().lastInsertRowid as number`. No runtime schema validation — types are compile-time only.
+- Express augmentation (`req.session.userId`, `app.locals.db`/`hub`) lives in `src/express.d.ts`. An untyped dependency gets a local `.d.ts` shim (see `src/better-sqlite3-session-store.d.ts`).
+- New data module: export functions taking `db: Database.Database` first; keep SQL inside; add any new row type to `types.ts`. New route: `xRouter(db, hub): Router`, handlers typed `(req: Request, res: Response)`.
+- `scripts/copy-assets.js` stays plain JS — it is the build helper and is excluded from `tsc`.
 
 **Two-layer structure.** Pure data modules take `db` as their first argument and hold all SQL and business logic: `sessions.js`, `catalog.js` (tasks/tags/clients), `timer.js`, `analytics.js`, `settings.js`, `calc.js`, `csv.js`. Thin routers in `src/routes/*` parse requests, call those modules, and render EJS. Keep SQL and logic in the data modules, not in routers — this is why every function threads `db` explicitly and tests exercise the modules directly against an in-memory DB.
 
