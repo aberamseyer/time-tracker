@@ -7,7 +7,7 @@ import { getSettings } from '../settings.js';
 import { fmtDuration } from './tracking.js';
 import type { Hub } from '../types.js';
 
-// Wall-clock times are treated as UTC (v2); timezone setting is future work.
+// Completed sessions store civil wall-clock as UTC epochs; timer uses real instants.
 function parseLocal(v: unknown): number | null {
   if (!v) return null;
   const s = String(v);
