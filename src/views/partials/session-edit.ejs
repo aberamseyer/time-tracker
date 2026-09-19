@@ -8,9 +8,11 @@
     <label>Start<input type="time" name="start" value="<%= startAt.time %>"></label>
     <label>End<input type="time" name="end" value="<%= endAt.time %>"></label>
   </div>
-  <div class="actions">
+<div class="actions">
     <button type="submit">Save</button>
     <button type="button" hx-post="/sessions/<%= s.id %>/delete"
-      hx-target="closest .session-row" hx-swap="outerHTML" class="danger">Delete</button>
+            hx-target="closest .session-row" hx-swap="outerHTML" class="danger" hx-confirm="Delete this session? Its tasks will be moved to No client.">
+      Delete
+    </button>
   </div>
 </form>

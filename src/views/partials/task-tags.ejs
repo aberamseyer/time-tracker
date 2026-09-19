@@ -1,23 +1,23 @@
 <div class="te-tags" id="te-tags-<%= task.id %>">
-  <div class="lbl">Assign these tags to new work units of this task</div>
-  <div class="chips">
-    <% task.tags.forEach(t => { %>
-      <span class="tag" style="--chip: <%= t.color %>"><%= t.name %>
-        <button type="button" class="x" title="Remove"
-                hx-post="/tasks/<%= task.id %>/tags/<%= t.id %>/delete"
-                hx-target="#te-tags-<%= task.id %>" hx-swap="outerHTML"><%- include('icon', { name:'x' }) %></button>
-      </span>
-    <% }) %>
-    <% if (!task.tags.length) { %><span class="muted">none</span><% } %>
-  </div>
-  <% const avail = tags.filter(t => !task.tags.some(x => x.id === t.id)); %>
-  <% if (avail.length) { %>
-    <div class="add-tag">
-      <select name="tagId">
-        <% avail.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
-      </select>
-      <button type="button" hx-post="/tasks/<%= task.id %>/tags" hx-include="previous select"
-              hx-target="#te-tags-<%= task.id %>" hx-swap="outerHTML">Add tag</button>
+    <div class="lbl">Assign these tags to new work units of this task</div>
+    <div class="chips">
+      <% task.tags.forEach(t => { %>
+        <span class="tag" style="--chip: <%= t.color %>"><%= t.name %>
+          <button type="button" class="x" title="Remove"
+                  hx-post="/tasks/<%= task.id %>/tags/<%= t.id %>/delete"
+                  hx-target="#te-tags-<%= task.id %>" hx-swap="outerHTML" hx-confirm="Remove this tag from the task?"><%- include('icon', { name:'x' }) %></button>
+        </span>
+      <% }) %>
+      <% if (!task.tags.length) { %><span class="muted">none</span><% } %>
     </div>
-  <% } %>
-</div>
+    <% const avail = tags.filter(t => !task.tags.some(x => x.id === t.id)); %>
+    <% if (avail.length) { %>
+      <div class="add-tag">
+        <select name="tagId">
+          <% avail.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+        </select>
+        <button type="button" hx-post="/tasks/<%= task.id %>/tags" hx-include="previous select"
+                hx-target="#te-tags-<%= task.id %>" hx-swap="outerHTML">Add tag</button>
+      </div>
+    <% } %>
+  </div>
