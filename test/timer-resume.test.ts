@@ -10,7 +10,7 @@ const UID = 1;
 
 test('startTimerFrom copies description, details, task and tags', () => {
   const { db } = makeApp();
-  const t = createTask(db, { name: 'Dev', userId: UID });
+  const t = createTask(db, { name: 'Dev', }, UID);
   const tag = createTag(db, { name: 'urgent' }, UID);
   const src = createSession(db, { description: 'Bug fix', details: 'null ptr', taskId: t, startUtc: 1, endUtc: 2, userId: UID });
   setSessionTags(db, src, [tag], UID);

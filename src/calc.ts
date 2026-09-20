@@ -1,8 +1,9 @@
 import type { SessionRow } from './types.js';
+import { MS_PER_MINUTE, MS_PER_HOUR } from './constants.js';
 
 export function roundUpDurationMs(ms: number, minutes: number): number {
   if (!minutes) return ms;
-  const interval = minutes * 60000;
+  const interval = minutes * MS_PER_MINUTE;
   return Math.ceil(ms / interval) * interval;
 }
 
@@ -17,5 +18,5 @@ export function sessionDurationMs(
 }
 
 export function earningsCents(durationMs: number, rateCents: number): number {
-  return Math.round((durationMs / 3600000) * rateCents);
+  return Math.round((durationMs / MS_PER_HOUR) * rateCents);
 }

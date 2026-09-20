@@ -59,12 +59,12 @@ const taskSpecs: [string, string, number | null, number | null, number[], string
 
 const tasks: { id: number; defTags: number[]; descs: string[] }[] = taskSpecs.map(
   ([name, color, rate, clientId, defTags, descs]) => {
-    const id = createTask(db, { name, color, hourlyRateCents: rate, clientId, userId });
-    for (const t of defTags) addTaskTag(db, id, t);
+    const id = createTask(db, { name, color, hourlyRateCents: rate, clientId }, userId);
+    for (const t of defTags) addTaskTag(db, id, t, userId);
     return { id, defTags, descs };
   }
 );
-updateTask(db, tasks[0].id, { name: 'Feature work', color: TASK_COLORS[0], hourlyRateCents: 13000, isDefault: true });
+updateTask(db, tasks[0].id, { name: 'Feature work', color: TASK_COLORS[0], hourlyRateCents: 13000, isDefault: true }, userId);
 
 const start = new Date();
 start.setUTCHours(0, 0, 0, 0);
@@ -92,7 +92,7 @@ const insert = db.transaction(() => {
         startUtc, endUtc, pausedMs, createdAt: startUtc, userId: userId
       });
       const extra = rand() < 0.2 ? [pick(Object.values(tags))] : [];
-      setSessionTags(db, id, [...new Set([...task.defTags, ...extra])]);
+      setSessionTags(db, id, [...new Set([...task.defTags, ...extra])], userId);
       cursor = endUtc + between(5, 90) * 60000; // gap before next
       count++;
     }

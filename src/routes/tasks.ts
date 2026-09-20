@@ -28,7 +28,7 @@ export function tasksRouter(db: Database.Database, hub: Hub): Router {
   r.post('/tasks', (req: Request, res: Response) => {
     const userId = ensureUserId(req);
     const body = req.body as Record<string, unknown>;
-    createTask(db, { name: 'New task', clientId: body.clientId ? Number(body.clientId) : null, userId });
+    createTask(db, { name: 'New task', clientId: body.clientId ? Number(body.clientId) : null }, userId);
     hub.broadcast('changed');
     res.render('partials/task-list', listCtx(userId));
   });

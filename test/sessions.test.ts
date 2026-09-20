@@ -5,26 +5,25 @@ import { createTask } from '../src/catalog.js';
 import { createSession, getSession, updateSession, setSessionTags,
   deleteSession, listSessions, decorateSession,
   distinctDescriptions, latestByDescription } from '../src/sessions.js';
-
-const MIN = 60000;
+import { MS_PER_MINUTE } from '../src/constants.js';
 
 test('create with start/end, read back (no segments key needed)', () => {
   const db = openDb(':memory:');
-  const id = createSession(db, { description: 'Work', startUtc: 0, endUtc: 10 * MIN, userId: 1 });
+  const id = createSession(db, { description: 'Work', startUtc: 0, endUtc: 10 * MS_PER_MINUTE, userId: 1 });
   const s = getSession(db, id, 1)!;
   assert.equal(s.description, 'Work');
   assert.equal(s.start_utc, 0);
-  assert.equal(s.end_utc, 10 * MIN);
+  assert.equal(s.end_utc, 10 * MS_PER_MINUTE);
 });
 
 test('update applies only given fields incl times', () => {
   const db = openDb(':memory:');
-  const id = createSession(db, { description: 'A', details: 'keep', startUtc: 0, endUtc: MIN, userId: 1 });
-  updateSession(db, id, { description: 'B', endUtc: 5 * MIN }, 1);
+  const id = createSession(db, { description: 'A', details: 'keep', startUtc: 0, endUtc: MS_PER_MINUTE, userId: 1 });
+  updateSession(db, id, { description: 'B', endUtc: 5 * MS_PER_MINUTE }, 1);
   const s = getSession(db, id, 1)!;
   assert.equal(s.description, 'B');
   assert.equal(s.details, 'keep');
-  assert.equal(s.end_utc, 5 * MIN);
+  assert.equal(s.end_utc, 5 * MS_PER_MINUTE);
 });
 
 test('setSessionTags replaces set', () => {
@@ -38,21 +37,21 @@ test('setSessionTags replaces set', () => {
 
 test('decorate: stopped rounds up, running raw', () => {
   const db = openDb(':memory:');
-  const t = createTask(db, { name: 'Paid', hourlyRateCents: 6000, userId: 1 });
-  const stopped = createSession(db, { taskId: t, startUtc: 0, endUtc: 23 * MIN, userId: 1 });
-  const ds = decorateSession(db, getSession(db, stopped, 1)!, 999, 15);
-  assert.equal(ds.durationMs, 23 * MIN);
-  assert.equal(ds.roundedMs, 30 * MIN);            // ceil
+  const t = createTask(db, { name: 'Paid', hourlyRateCents: 6000, }, 1);
+  const stopped = createSession(db, { taskId: t, startUtc: 0, endUtc: 23 * MS_PER_MINUTE, userId: 1 });
+  const ds = decorateSession(db, getSession(db, stopped, 1)!, 999, 15, 1);
+  assert.equal(ds.durationMs, 23 * MS_PER_MINUTE);
+  assert.equal(ds.roundedMs, 30 * MS_PER_MINUTE);            // ceil
   assert.equal(ds.earningsCents, 3000);            // 30min @ $60/h
   const running = createSession(db, { taskId: t, startUtc: 0, endUtc: null, userId: 1 });
-  const dr = decorateSession(db, getSession(db, running, 1)!, 23 * MIN, 15);
+  const dr = decorateSession(db, getSession(db, running, 1)!, 23 * MS_PER_MINUTE, 15, 1);
   assert.equal(dr.running, true);
-  assert.equal(dr.roundedMs, 23 * MIN);            // raw while running
+  assert.equal(dr.roundedMs, 23 * MS_PER_MINUTE);            // raw while running
 });
 
 test('filters unlabelled/uncategorized', () => {
   const db = openDb(':memory:');
-  const t = createTask(db, { name: 'T', userId: 1 });
+  const t = createTask(db, { name: 'T', }, 1);
   createSession(db, { description: 'x', taskId: t, startUtc: 1, endUtc: 2, userId: 1 });
   const bare = createSession(db, { startUtc: 3, endUtc: 4, userId: 1 });
   assert.deepEqual(listSessions(db, { unlabelled: true }, 1).map(s => s.id), [bare]);
@@ -68,7 +67,7 @@ test('delete removes session', () => {
 
 test('autocomplete: distinct descriptions and template', () => {
   const db = openDb(':memory:');
-  const t = createTask(db, { name: 'Dev', userId: 1 });
+  const t = createTask(db, { name: 'Dev', }, 1);
   const older = createSession(db, { description: 'Bug fix', details: 'old', taskId: t, startUtc: 0, endUtc: 1, userId: 1 });
   db.prepare("INSERT INTO tag (id,name,user_id) VALUES (1,'urgent',1)").run();
   setSessionTags(db, older, [1], 1);

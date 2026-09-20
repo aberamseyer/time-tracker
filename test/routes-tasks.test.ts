@@ -48,7 +48,7 @@ test('only one default task at a time', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const a = createTask(db, { name: 'A', userId: UID }), b = createTask(db, { name: 'B', userId: UID });
+  const a = createTask(db, { name: 'A', }, UID), b = createTask(db, { name: 'B', }, UID);
   await agent.post(`/tasks/${a}`).type('form').send({ name: 'A', isDefault: '1' });
   await agent.post(`/tasks/${b}`).type('form').send({ name: 'B', isDefault: '1' });
   assert.equal(defaultTask(db, UID)!.id, b);
@@ -59,7 +59,7 @@ test('default tags add and remove', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const t = createTask(db, { name: 'T', userId: UID });
+  const t = createTask(db, { name: 'T', }, UID);
   const tag = createTag(db, { name: 'billable' }, UID);
   await agent.post(`/tasks/${t}/tags`).type('form').send({ tagId: String(tag) });
   assert.deepEqual(taskTagIds(db, t, UID), [tag]);
@@ -97,7 +97,7 @@ test('deleting a client via route keeps its tasks under No client', async () => 
   const agent = request.agent(app);
   await login(agent, db);
   const c = createClient(db, { name: 'Beta' }, UID);
-  const t = createTask(db, { name: 'Job', clientId: c, userId: UID });
+  const t = createTask(db, { name: 'Job', clientId: c, }, UID);
   const res = await agent.post(`/clients/${c}/delete`);
   assert.equal(res.status, 200);
   assert.equal(getClient(db, c, UID), undefined);
@@ -109,8 +109,8 @@ test('tasks page groups by client, No client last', async () => {
   const agent = request.agent(app);
   await login(agent, db);
   const c = createClient(db, { name: 'Acme' }, UID);
-  createTask(db, { name: 'Grouped', clientId: c, userId: UID });
-  createTask(db, { name: 'Loose', userId: UID });
+  createTask(db, { name: 'Grouped', clientId: c, }, UID);
+  createTask(db, { name: 'Loose', }, UID);
   const res = await agent.get('/tasks');
   assert.ok(res.text.indexOf('Acme') < res.text.indexOf('No client'));
   assert.match(res.text, /Grouped/);
@@ -118,7 +118,7 @@ test('tasks page groups by client, No client last', async () => {
 
 test('starting the timer applies default task and its tags', () => {
   const { db } = makeApp();
-  const t = createTask(db, { name: 'Def', userId: UID });
+  const t = createTask(db, { name: 'Def', }, UID);
   const tag = createTag(db, { name: 'auto' }, UID);
   db.prepare('UPDATE task SET is_default = 1 WHERE id = ? AND user_id = ?').run(t, UID);
   db.prepare('INSERT INTO task_tag (task_id, tag_id) VALUES (?, ?)').run(t, tag);
@@ -135,7 +135,7 @@ test('cross-user isolation: a user cannot list, read, or delete another user\'s 
   await login(abe, db, 'abe', 'pw');            // user A (id 1)
   await login(bob, db, 'bob', 'pw');            // user B (id 2)
 
-  const aTaskId = createTask(db, { name: 'AbeSecret', clientId: null, userId: UID });
+  const aTaskId = createTask(db, { name: 'AbeSecret', clientId: null, }, UID);
   assert.ok(getTask(db, aTaskId, UID));
 
   // List: bob's task page omits abe's task; abe's shows it.

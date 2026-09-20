@@ -7,8 +7,8 @@ import { getSettings } from '../settings.js';
 import { sessionsToCsv } from '../csv.js';
 import { fmtDuration, fmtMoney } from './tracking.js';
 import type { SessionFilter } from '../types.js';
+import { MS_PER_DAY } from '../constants.js';
 
-const DAY = 86400000;
 const TYPES = ['week', 'month', 'quarter'];
 
 function idsFrom(v: unknown): number[] {
@@ -17,10 +17,10 @@ function idsFrom(v: unknown): number[] {
 
 export function analyticsRouter(db: Database.Database): Router {
   const r = express.Router();
-  const rounding = (userId = 0) => getSettings(db, userId).rounding_minutes;
-  const weekStart = (userId = 0) => getSettings(db, userId).week_start ?? 1;
+  const rounding = (userId: number) => getSettings(db, userId).rounding_minutes;
+  const weekStart = (userId: number) => getSettings(db, userId).week_start ?? 1;
 
-  function ctx(q: Record<string, unknown>, userId = 0) {
+  function ctx(q: Record<string, unknown>, userId: number) {
     const by = q.by === 'tag' ? 'tag' : 'task';
     const metric = q.metric === 'earnings' ? 'earnings' : 'time';
     const chart = q.chart === 'lines' ? 'lines' : 'bars';
@@ -60,7 +60,7 @@ export function analyticsRouter(db: Database.Database): Router {
     const query = req.query as Record<string, unknown>;
     const type = TYPES.includes(query.type as string) ? (query.type as string) : 'week';
     const period = periodOf(type, query.ps ? Number(query.ps) : Date.now(), weekStart(userId));
-    const filter: SessionFilter = { from: dayStartUTC(period.from), to: dayStartUTC(period.to) + DAY - 1 };
+    const filter: SessionFilter = { from: dayStartUTC(period.from), to: dayStartUTC(period.to) + MS_PER_DAY - 1 };
     if (query.clientId) filter.clientId = Number(query.clientId);
     const taskIds = idsFrom(query.taskId), tagIds = idsFrom(query.tagId);
     if (taskIds.length) filter.taskIds = taskIds;
@@ -73,7 +73,7 @@ export function analyticsRouter(db: Database.Database): Router {
     };
     const rows = listSessions(db, filter, userId)
       .filter(s => s.end_utc != null)
-      .map(s => ({ ...decorateSession(db, s, Date.now(), rounding(userId)), client: clientOf(s.task && s.task.client_id) }));
+      .map(s => ({ ...decorateSession(db, s, Date.now(), rounding(userId), userId), client: clientOf(s.task && s.task.client_id) }));
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="time-export.csv"');
     res.send(sessionsToCsv(rows));

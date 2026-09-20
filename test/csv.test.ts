@@ -2,12 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sessionsToCsv } from '../src/csv.js';
 import type { DecoratedSession } from '../src/types.js';
+import { MS_PER_MINUTE, MS_PER_HOUR } from '../src/constants.js';
 
 test('csv has header and formats rows', () => {
   const rows = [{
     start_utc: Date.UTC(2026, 0, 2, 9, 0), end_utc: Date.UTC(2026, 0, 2, 9, 30),
     description: 'Standup', details: 'daily', client: { name: 'Acme' }, task: { name: 'Dev' },
-    tags: [{ name: 'urgent' }, { name: 'call' }], roundedMs: 1800000, earningsCents: 2500,
+    tags: [{ name: 'urgent' }, { name: 'call' }], roundedMs: (MS_PER_MINUTE * 30), earningsCents: 2500,
   }] as unknown as DecoratedSession[];
   const csv = sessionsToCsv(rows);
   const [header, line] = csv.split('\n');
@@ -18,7 +19,7 @@ test('csv has header and formats rows', () => {
 test('csv quotes fields with commas and quotes', () => {
   const rows = [{
     start_utc: Date.UTC(2026, 0, 2), end_utc: Date.UTC(2026, 0, 2, 1),
-    description: 'a, b', details: 'say "hi"', task: null, tags: [], roundedMs: 3600000, earningsCents: 0,
+    description: 'a, b', details: 'say "hi"', task: null, tags: [], roundedMs: MS_PER_HOUR, earningsCents: 0,
   }] as unknown as DecoratedSession[];
   const line = sessionsToCsv(rows).split('\n')[1];
   assert.ok(line.includes('"a, b"'));

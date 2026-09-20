@@ -6,6 +6,7 @@ import { getActiveSession } from '../src/timer.js';
 import { getSession, createSession } from '../src/sessions.js';
 import { createTask } from '../src/catalog.js';
 import { updateSettings } from '../src/settings.js';
+import { MS_PER_HOUR, MS_PER_DAY } from '../src/constants.js';
 
 test('start creates a running session and broadcasts', async () => {
   const events: string[] = [];
@@ -33,7 +34,7 @@ test('edit while running updates description and task', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const t = createTask(db, { name: 'Paid', userId: 1 });
+  const t = createTask(db, { name: 'Paid', }, 1);
   await agent.post('/timer/start');
   const id = getActiveSession(db, 1)!.id;
   const res = await agent.post('/timer/update').type('form').send({ description: 'Live edit', taskId: String(t) });
@@ -73,7 +74,7 @@ test('naming running work autocompletes empty fields from history', async () => 
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const t = createTask(db, { name: 'Dev', userId: 1 });
+  const t = createTask(db, { name: 'Dev', }, 1);
   createSession(db, { description: 'Standup', details: 'daily', taskId: t, startUtc: 1, endUtc: 2, userId: 1 });
   await agent.post('/timer/start');
   const id = getActiveSession(db, 1)!.id;
@@ -91,12 +92,12 @@ test('timer start-time clamps to [local midnight, now] on real instants', async 
   await agent.post('/timer/start').type('form').send({ tz: '0' });
   const id = getActiveSession(db, 1)!.id;
   const now = Date.now();
-  await agent.post('/timer/start-time').type('form').send({ start: String(now - 2 * 3600000), tz: '0' });
-  assert.equal(getSession(db, id, 1)!.start_utc, now - 2 * 3600000);
-  await agent.post('/timer/start-time').type('form').send({ start: String(now + 3600000), tz: '0' });
+  await agent.post('/timer/start-time').type('form').send({ start: String(now - 2 * MS_PER_HOUR), tz: '0' });
+  assert.equal(getSession(db, id, 1)!.start_utc, now - 2 * MS_PER_HOUR);
+  await agent.post('/timer/start-time').type('form').send({ start: String(now + MS_PER_HOUR), tz: '0' });
   assert.ok(getSession(db, id, 1)!.start_utc! <= Date.now() + 1000);
   const midnight = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
-  await agent.post('/timer/start-time').type('form').send({ start: String(midnight - 5 * 3600000), tz: '0' });
+  await agent.post('/timer/start-time').type('form').send({ start: String(midnight - 5 * MS_PER_HOUR), tz: '0' });
   assert.ok(getSession(db, id, 1)!.start_utc! >= midnight);
 });
 
@@ -104,7 +105,7 @@ test('timer split closes an overdue running session', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  createSession(db, { description: 'overnight', startUtc: Date.now() - 2 * 86400000, endUtc: null, userId: 1 });
+  createSession(db, { description: 'overnight', startUtc: Date.now() - 2 * MS_PER_DAY, endUtc: null, userId: 1 });
   const res = await agent.post('/timer/split').type('form').send({ tz: '0' });
   assert.equal(res.status, 204);
   const todayMidnight = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());

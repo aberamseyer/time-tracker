@@ -12,7 +12,7 @@ test('quick-add task returns a selected option', async () => {
   const res = await agent.post('/quick/task').type('form').send({ _qtask: 'Research' });
   assert.equal(res.status, 200);
   assert.match(res.text, /<option value="\d+" selected>Research<\/option>/);
-  assert.ok(listTasks(db).some(t => t.name === 'Research'));
+  assert.ok(listTasks(db, 1).some(t => t.name === 'Research'));
 });
 
 test('quick-add tag returns a checked chip', async () => {
@@ -22,5 +22,5 @@ test('quick-add tag returns a checked chip', async () => {
   const res = await agent.post('/quick/tag').type('form').send({ _qtag: 'billable' });
   assert.equal(res.status, 200);
   assert.match(res.text, /name="tagId" value="\d+" checked/);
-  assert.ok(listTags(db).some(t => t.name === 'billable'));
+  assert.ok(listTags(db, 1).some(t => t.name === 'billable'));
 });

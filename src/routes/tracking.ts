@@ -6,6 +6,7 @@ import { listTasks, listTags, taskTagIds, listActiveTasksByClient } from '../cat
 import { getSettings } from '../settings.js';
 import { dayStartUTC, periodOf } from '../analytics.js';
 import type { Hub, HydratedSession, SessionFilter, SessionGroup } from '../types.js';
+import { MS_PER_MINUTE } from '../constants.js';
 
 function ensureUserId(req: Request): number {
   return (req.session && req.session.userId) ? req.session.userId : 0;
@@ -15,7 +16,7 @@ function ensureUserId(req: Request): number {
 const PAGE = 1;
 
 export function fmtDuration(ms: number): string {
-  const totalMin = Math.round(ms / 60000);
+  const totalMin = Math.round(ms / MS_PER_MINUTE);
   const h = Math.floor(totalMin / 60), m = totalMin % 60;
   if (h && m) return `${h} h ${m} min`;
   if (h) return `${h} h`;
@@ -52,7 +53,7 @@ export function groupSessions(
   rounding: number,
   unit = 'day',
   weekStart = 1,
-  userId = 0,
+  userId: number,
 ): SessionGroup[] {
   const groups: Map<number, SessionGroup> = new Map();
   for (const s of sessions) {
@@ -72,8 +73,8 @@ export function groupSessions(
 
 export function trackingRouter(db: Database.Database, hub: Hub): Router {
   const r = express.Router();
-  const rounding = (userId = 0) => getSettings(db, userId).rounding_minutes;
-  const grouping = (userId = 0) => { const s = getSettings(db, userId); return { unit: s.session_grouping || 'day', weekStart: s.week_start ?? 1 }; };
+  const rounding = (userId: number) => getSettings(db, userId).rounding_minutes;
+  const grouping = (userId: number) => { const s = getSettings(db, userId); return { unit: s.session_grouping || 'day', weekStart: s.week_start ?? 1 }; };
 
   // All completed sessions for the query, grouped by the chosen period.
   function allGroups(q: Record<string, unknown>, userId: number) {
@@ -185,7 +186,7 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
     const body = req.body as Record<string, unknown>;
     const start = Number(body.start), tzMin = tzOf(req);
     if (active && Number.isFinite(start)) {
-      const off = tzMin * 60000, now = Date.now();
+      const off = tzMin * MS_PER_MINUTE, now = Date.now();
       const lo = civilDayStart(now - off) + off;                        // local midnight today (real)
       const hi = (active.pause_started_at ?? now) - (active.paused_ms || 0);
       updateSession(db, active.id, { startUtc: Math.min(hi, Math.max(lo, start)) }, userId);

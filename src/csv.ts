@@ -1,4 +1,5 @@
 import type { DecoratedSession } from './types.js';
+import { MS_PER_MINUTE } from './constants.js';
 
 function q(v: unknown): string {
   const s = String(v ?? '');
@@ -18,7 +19,7 @@ export function sessionsToCsv(rows: DecoratedSession[]): string {
       s.client ? s.client.name : '',
       s.task ? s.task.name : '',
       s.tags.map(t => t.name).join('; '),
-      Math.round(s.roundedMs / 60000),
+      Math.round(s.roundedMs / MS_PER_MINUTE),
       (s.earningsCents / 100).toFixed(2),
     ].map(q).join(','));
   }

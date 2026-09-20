@@ -42,7 +42,7 @@ export function updateSession(
   db.prepare(`UPDATE session SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...vals);
 }
 
-export function setSessionTags(db: Database.Database, id: number, tagIds: number[], userId = 0): void {
+export function setSessionTags(db: Database.Database, id: number, tagIds: number[], userId: number): void {
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM session_tag WHERE session_id = ?').run(id);
     const validTagIds = userId ? tagIds.filter(t => db.prepare('SELECT 1 FROM tag WHERE id = ? AND user_id = ?').get(t, userId) ? t : null).filter(Boolean) : tagIds;
@@ -52,11 +52,11 @@ export function setSessionTags(db: Database.Database, id: number, tagIds: number
   tx();
 }
 
-export function deleteSession(db: Database.Database, id: number, userId = 0): void {
+export function deleteSession(db: Database.Database, id: number, userId: number): void {
   db.prepare('DELETE FROM session WHERE id = ? AND user_id = ?').run(id, userId);
 }
 
-function hydrate(db: Database.Database, row: SessionRow, userId = 0): HydratedSession {
+function hydrate(db: Database.Database, row: SessionRow, userId: number): HydratedSession {
   const tags = db.prepare(
     `SELECT tag.* FROM tag JOIN session_tag st ON st.tag_id = tag.id WHERE st.session_id = ? AND tag.user_id = ? ORDER BY tag.name`
   ).all(row.id, userId) as TagRow[];
@@ -66,13 +66,13 @@ function hydrate(db: Database.Database, row: SessionRow, userId = 0): HydratedSe
   return { ...row, tags, task };
 }
 
-export function getSession(db: Database.Database, id: number, userId = 0): HydratedSession | undefined {
+export function getSession(db: Database.Database, id: number, userId: number): HydratedSession | undefined {
   const w = userId ? 'AND user_id = ?' : '';
   const row = db.prepare(`SELECT * FROM session WHERE id = ? ${w}`).get(userId ? [id, userId] : [id]) as SessionRow | undefined;
   return row ? hydrate(db, row, userId) : undefined;
 }
 
-export function listSessions(db: Database.Database, filter: SessionFilter = {}, userId: number = 0): HydratedSession[] {
+export function listSessions(db: Database.Database, filter: SessionFilter = {}, userId: number): HydratedSession[] {
   const where: string[] = [], vals: unknown[] = [];
   if (userId) { where.push('s.user_id = ?'); vals.push(userId); }
   if (filter.completedOnly) where.push('s.end_utc IS NOT NULL');
@@ -116,7 +116,7 @@ export function decorateSession(
   session: HydratedSession,
   now: number,
   roundingMinutes: number,
-  userId = 0,
+  userId: number,
 ): DecoratedSession {
   const active = session.end_utc == null;
   const paused = active && session.pause_started_at != null;
@@ -127,7 +127,7 @@ export function decorateSession(
   return { ...session, active, paused, running, durationMs, roundedMs, earningsCents: earningsCents(roundedMs, rate) };
 }
 
-export function distinctDescriptions(db: Database.Database, q = '', limit = 8, userId = 0): string[] {
+export function distinctDescriptions(db: Database.Database, q = '', limit = 8, userId: number): string[] {
   const where = userId
     ? 'WHERE s.user_id = ? AND description <> \'\' AND description LIKE ?'
     : 'WHERE description <> \'\' AND description LIKE ?';
@@ -139,7 +139,7 @@ export function distinctDescriptions(db: Database.Database, q = '', limit = 8, u
 export function latestByDescription(
   db: Database.Database,
   description: string,
-  userId = 0,
+  userId: number,
 ): { details: string; task_id: number | null; task: TaskRow | null; tags: TagRow[] } | null {
   const where = userId ? 'WHERE description = ? AND user_id = ?' : 'WHERE description = ?';
   const row = db.prepare(

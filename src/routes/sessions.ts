@@ -27,7 +27,7 @@ export function ensureUserId(req: Request): number {
 
 export function sessionsRouter(db: Database.Database, hub: Hub): Router {
   const r = express.Router();
-  const rounding = () => getSettings(db, 0).rounding_minutes;
+  const rounding = (userId: number) => getSettings(db, userId).rounding_minutes;
 
   r.get('/sessions/template', (req: Request, res: Response) => {
     const userId = ensureUserId(req);
@@ -68,7 +68,7 @@ export function sessionsRouter(db: Database.Database, hub: Hub): Router {
     }, userId);
     setSessionTags(db, id, idsFrom(body, 'tagId'), userId);
     hub.broadcast('changed');
-    const s = decorateSession(db, getSession(db, id)!, Date.now(), rounding(), userId);
+    const s = decorateSession(db, getSession(db, id, userId)!, Date.now(), rounding(userId), userId);
     res.render('partials/session-row', { s, fmtDuration });
   });
 
@@ -106,7 +106,7 @@ export function sessionsRouter(db: Database.Database, hub: Hub): Router {
     const body = req.body as Record<string, unknown>;
     const name = ((body._qtask as string) || '').trim();
     if (!name) return res.status(400).render('partials/error', { message: 'Task name is required' });
-    const id = createTask(db, { name, userId: ensureUserId(req) });
+    const id = createTask(db, { name }, ensureUserId(req));
     res.render('partials/task-option', { t: { id, name } });
   });
 
@@ -114,8 +114,8 @@ export function sessionsRouter(db: Database.Database, hub: Hub): Router {
     const body = req.body as Record<string, unknown>;
     const name = ((body._qtag as string) || '').trim();
     if (!name) return res.status(400).render('partials/error', { message: 'Tag name is required' });
-    const id = createTag(db, { name });
-    res.render('partials/tag-chip', { t: getTag(db, id) });
+    const id = createTag(db, { name }, ensureUserId(req));
+    res.render('partials/tag-chip', { t: getTag(db, id, ensureUserId(req)) });
   });
 
   return r;

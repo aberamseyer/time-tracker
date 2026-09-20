@@ -1,8 +1,8 @@
 import type Database from 'better-sqlite3';
 import { listSessions, decorateSession } from './sessions.js';
 import type { SessionFilter, Series, Report, Period, Bucket } from './types.js';
+import { MS_PER_DAY } from './constants.js';
 
-const DAY = 86400000;
 const GREY = '#9ca3af';
 
 export function dayStartUTC(ms: number): number {
@@ -16,14 +16,14 @@ function mdLabel(ms: number): string {
 // Aggregate completed sessions into buckets (day or week) grouped by task or tag.
 export function buildReport(db: Database.Database, {
   from, to, unit = 'day', by = 'task', metric = 'time', rounding = 0,
-  clientId = null, taskIds = [], tagIds = [], userId = 0,
+  clientId = null, taskIds = [], tagIds = [], userId,
 }: {
   from: number; to: number; unit?: 'day' | 'week'; by?: 'task' | 'tag'; metric?: 'time' | 'earnings';
-  rounding?: number; clientId?: number | null; taskIds?: number[]; tagIds?: number[]; userId?: number;
+  rounding?: number; clientId?: number | null; taskIds?: number[]; tagIds?: number[]; userId: number;
 }): Report {
-  const size = unit === 'week' ? 7 * DAY : DAY;
+  const size = unit === 'week' ? 7 * MS_PER_DAY : MS_PER_DAY;
   const start = dayStartUTC(from);
-  const end = dayStartUTC(to) + DAY;
+  const end = dayStartUTC(to) + MS_PER_DAY;
   const n = Math.max(1, Math.ceil((end - start) / size));
   const buckets: Bucket[] = [];
   for (let i = 0; i < n; i++) buckets.push({ start: start + i * size, label: mdLabel(start + i * size) });
@@ -60,7 +60,7 @@ export function buildReport(db: Database.Database, {
 function weekStartOf(ms: number, weekStart: number): number {
   const ds = dayStartUTC(ms);
   const diff = (new Date(ds).getUTCDay() - weekStart + 7) % 7;
-  return ds - diff * DAY;
+  return ds - diff * MS_PER_DAY;
 }
 function monthStartOf(ms: number): number { const d = new Date(ms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); }
 function quarterStartOf(ms: number): number { const d = new Date(ms); return Date.UTC(d.getUTCFullYear(), Math.floor(d.getUTCMonth() / 3) * 3, 1); }
@@ -78,14 +78,14 @@ export function periodOf(type: string, ms: number, weekStart = 1): Period {
       label: `Q${q} ${d.getUTCFullYear()}` };
   }
   const start = weekStartOf(ms, weekStart);
-  return { type, start, from: start, to: start + 6 * DAY, unit: 'day', label: mdLabel(start) };
+  return { type, start, from: start, to: start + 6 * MS_PER_DAY, unit: 'day', label: mdLabel(start) };
 }
 
 function nextPeriodStart(type: string, start: number): number {
   const d = new Date(start);
   if (type === 'month') return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
   if (type === 'quarter') return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 3, 1);
-  return start + 7 * DAY;
+  return start + 7 * MS_PER_DAY;
 }
 
 // Every period of `type` spanning the first..last completed session (newest first).
