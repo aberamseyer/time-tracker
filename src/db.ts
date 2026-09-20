@@ -74,29 +74,7 @@ function addColumn(db: Database.Database, table: string, col: string, def: strin
 }
 
 export function migrate(db: Database.Database): void {
-  // Drop old global index before SCHEMA recreates it as per-user.
-  try { db.exec('DROP INDEX IF EXISTS one_active_session'); } catch { /* best effort */ }
   db.exec(SCHEMA);
-  // Columns added after v2; ALTER is a no-op when they already exist.
-  addColumn(db, 'task', 'details', "TEXT NOT NULL DEFAULT ''");
-  addColumn(db, 'task', 'is_default', 'INTEGER NOT NULL DEFAULT 0');
-  // Add user_id columns for multi-user support (v3). Default to 1 for existing single-user data.
-  addColumn(db, 'client', 'user_id', 'INTEGER NOT NULL DEFAULT 1');
-  addColumn(db, 'task', 'user_id', 'INTEGER NOT NULL DEFAULT 1');
-  addColumn(db, 'tag', 'user_id', 'INTEGER NOT NULL DEFAULT 1');
-  addColumn(db, 'session', 'user_id', 'INTEGER NOT NULL DEFAULT 1');
-  // Migrate existing single settings row from old schema (id=1) to new schema (user_id=1).
-  // Check if old 'id' column exists in settings table.
-  const hasIdColumn = db.prepare("PRAGMA table_info(settings)").all().some((c: any) => c.name === 'id');
-  if (hasIdColumn) {
-    const existing = db.prepare('SELECT * FROM settings WHERE id = 1').get() as { business_from?: string; currency?: string; week_start?: number; timezone?: string; rounding_minutes?: number; session_grouping?: string } | undefined;
-    if (existing) {
-      db.prepare('INSERT OR IGNORE INTO settings (user_id, business_from, currency, week_start, timezone, rounding_minutes, session_grouping) VALUES (1, ?, ?, ?, ?, ?, ?)')
-        .run(existing.business_from ?? '', existing.currency ?? 'USD', existing.week_start ?? 1, existing.timezone ?? 'UTC', existing.rounding_minutes ?? 0, existing.session_grouping ?? 'day');
-    }
-  }
-  // Ensure user_id=1 settings row exists.
-  db.prepare('INSERT OR IGNORE INTO settings (user_id) VALUES (1)').run();
 }
 
 export function seedSettings(db: Database.Database, userId = 1): void {
