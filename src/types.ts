@@ -57,7 +57,6 @@ export interface SessionGroup {
 }
 
 export interface Hub {
-  clients: Set<WebSocket>;
-  handleConnection(ws: WebSocket): void;
-  broadcast(type?: string): void;
+  handleConnection(ws: WebSocket, userId: number): void;
+  notify(userId: number, type?: string): void;
 }

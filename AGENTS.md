@@ -37,7 +37,7 @@ Single-user time tracker. Express + EJS server-rendered HTML, htmx for partial u
 
 **Request wiring.** `src/app.js` `createApp({ db, hub })` mounts routers behind `requireAuth`; `src/server.js` owns the HTTP server, opens the DB, creates the WS hub, and authenticates WS upgrades with the same session middleware. `createApp` is DB/hub-injected so tests build an app over `:memory:` (see `test/helpers.js`).
 
-**Live sync.** Any mutation calls `hub.broadcast('changed')` (`src/ws.js`). The browser (`public/app.js`) receives it and dispatches a `tt:changed` DOM event; htmx elements listen for it (e.g. the Time-page filter form `hx-trigger="... tt:changed from:body"`) and refetch their partial. To make a change reflect live, broadcast after it and ensure a partial listens for `tt:changed`.
+**Live sync.** Any mutation calls `hub.notify(userId, 'changed')` (`src/ws.js`) to notify only that user's tabs (the connection is authenticated with `userId` at upgrade time). The browser (`public/app.js`) receives it and dispatches a `tt:changed` DOM event; htmx elements listen for it (e.g. the Time-page filter form `hx-trigger="... tt:changed from:body"`) and refetch their partial. To make a change reflect live, notify after it and ensure a partial listens for `tt:changed`.
 
 **htmx conventions.** Routes return either full pages (`res.render('tracking', ...)`) or fragments (`res.render('partials/...')`). Full pages wrap content by `include('layout', { title, nav, body })`. Errors: the global handler in `app.js` renders `partials/error` for `HX-Request` requests. New interactive UI = a partial route plus an htmx trigger.
 

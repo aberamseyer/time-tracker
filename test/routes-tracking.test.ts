@@ -10,7 +10,7 @@ import { MS_PER_HOUR, MS_PER_DAY } from '../src/constants.js';
 
 test('start creates a running session and broadcasts', async () => {
   const events: string[] = [];
-  const { app, db } = makeApp({ hub: { broadcast: (t?: string) => events.push(t || 'changed'), handleConnection() {} } });
+  const { app, db } = makeApp({ hub: { notify: (uid: number, t?: string) => events.push(t || 'changed'), handleConnection() {} } });
   const agent = request.agent(app);
   await login(agent, db);
   const res = await agent.post('/timer/start');

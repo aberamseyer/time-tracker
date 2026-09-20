@@ -26,7 +26,8 @@ server.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
   sessionMw(req as unknown as Request, {} as Response, () => {
     const session = (req as unknown as { session?: { userId?: number } }).session;
     if (!session || !session.userId) return socket.destroy();
-    wss.handleUpgrade(req, socket, head, (ws) => hub.handleConnection(ws));
+    const userId = session.userId;
+    wss.handleUpgrade(req, socket, head, (ws) => hub.handleConnection(ws, userId));
   });
 });
 

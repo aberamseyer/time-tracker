@@ -133,7 +133,7 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
     res.render('partials/tracking-list', pageCtx(req.query, ensureUserId(req))));
 
   function afterMutation(req: Request, res: Response) {
-    hub.broadcast('changed');
+    hub.notify(ensureUserId(req), 'changed');
     res.render('partials/active-timer', activeCtx(req));
   }
 
@@ -196,7 +196,7 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
 
   r.post('/timer/split', (req: Request, res: Response) => {
     const userId = ensureUserId(req);
-    if (splitExpiredDays(db, Date.now(), tzOf(req), userId)) hub.broadcast('changed');
+    if (splitExpiredDays(db, Date.now(), tzOf(req), userId)) hub.notify(userId, 'changed');
     res.status(204).end();
   });
 

@@ -14,22 +14,32 @@ function fakeWs() {
   };
 }
 
-test('broadcast reaches open clients only', () => {
+test('notify sends only to the user\'s clients', () => {
   const hub = createHub();
   const a = fakeWs(), b = fakeWs();
-  b.readyState = 3;
-  hub.handleConnection(a as unknown as WebSocket);
-  hub.handleConnection(b as unknown as WebSocket);
-  hub.broadcast('changed');
+  hub.handleConnection(a as unknown as WebSocket, 1);
+  hub.handleConnection(b as unknown as WebSocket, 2);
+  hub.notify(1, 'changed');
   assert.deepEqual(a.sent, ['{"type":"changed"}']);
   assert.deepEqual(b.sent, []);
 });
 
-test('closed client is removed', () => {
+test('notify skips closed clients', () => {
+  const hub = createHub();
+  const a = fakeWs(), b = fakeWs();
+  b.readyState = 3;
+  hub.handleConnection(a as unknown as WebSocket, 1);
+  hub.handleConnection(b as unknown as WebSocket, 1);
+  hub.notify(1, 'changed');
+  assert.deepEqual(a.sent, ['{"type":"changed"}']);
+  assert.deepEqual(b.sent, []);
+});
+
+test('closed connection is removed', () => {
   const hub = createHub();
   const a = fakeWs();
-  hub.handleConnection(a as unknown as WebSocket);
+  hub.handleConnection(a as unknown as WebSocket, 1);
   a.fire('close');
-  hub.broadcast('changed');
+  hub.notify(1, 'changed');
   assert.deepEqual(a.sent, []);
 });

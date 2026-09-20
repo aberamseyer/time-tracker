@@ -31,7 +31,7 @@ export function settingsRouter(db: Database.Database, hub: Hub): Router {
         sessionGrouping: body.sessionGrouping,
         weekStart: body.weekStart,
       });
-      hub.broadcast('changed');
+      hub.notify(userId, 'changed');
       res.redirect('/settings');
     } catch {
       res.render('settings', {
@@ -47,7 +47,7 @@ export function settingsRouter(db: Database.Database, hub: Hub): Router {
     const name = ((body.name as string) || '').trim();
     if (!name) return res.status(400).render('partials/error', { message: 'Tag name is required' });
     createTag(db, { name, color: (body.color as string) || DEFAULT_TAG_COLOR }, userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     tagsPartial(db, req, res);
   });
   r.post('/settings/tags/:id', (req: Request, res: Response) => {
@@ -56,13 +56,13 @@ export function settingsRouter(db: Database.Database, hub: Hub): Router {
     const name = ((body.name as string) || '').trim();
     if (!name) return res.status(400).render('partials/error', { message: 'Tag name is required' });
     updateTag(db, Number(req.params.id), { name, color: (body.color as string) || DEFAULT_TAG_COLOR }, userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     tagsPartial(db, req, res);
   });
   r.post('/settings/tags/:id/archive', (req: Request, res: Response) => {
     const userId = ensureUserId(req);
     archiveTag(db, Number(req.params.id), userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     tagsPartial(db, req, res);
   });
 

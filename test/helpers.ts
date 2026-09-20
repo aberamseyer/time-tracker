@@ -15,7 +15,7 @@ export function makeApp(overrides: { db?: Database.Database; hub?: Partial<Hub> 
   hub: Hub;
 } {
   const db = overrides.db ?? makeTestDb();
-  const hub: Hub = { clients: new Set(), handleConnection() {}, broadcast() {}, ...overrides.hub };
+  const hub: Hub = { handleConnection() {}, notify() {}, ...overrides.hub };
   return { app: createApp({ db, hub }), db, hub };
 }
 

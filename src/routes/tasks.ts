@@ -29,7 +29,7 @@ export function tasksRouter(db: Database.Database, hub: Hub): Router {
     const userId = ensureUserId(req);
     const body = req.body as Record<string, unknown>;
     createTask(db, { name: 'New task', clientId: body.clientId ? Number(body.clientId) : null }, userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.render('partials/task-list', listCtx(userId));
   });
 
@@ -54,7 +54,7 @@ export function tasksRouter(db: Database.Database, hub: Hub): Router {
       clientId: body.clientId ? Number(body.clientId) : null,
     }, userId);
     setTaskHidden(db, id, !!body.hidden, userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.render('partials/task-list', listCtx(userId));
   });
 
@@ -63,14 +63,14 @@ export function tasksRouter(db: Database.Database, hub: Hub): Router {
     const id = Number(req.params.id);
     const t = getTask(db, id, userId);
     setTaskHidden(db, id, !t!.archived, userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.render('partials/task-row', { t: getTask(db, id, userId) });
   });
 
   r.post('/tasks/:id/delete', (req: Request, res: Response) => {
     const userId = ensureUserId(req);
     deleteTask(db, Number(req.params.id), userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.status(200).end();
   });
 
@@ -79,7 +79,7 @@ export function tasksRouter(db: Database.Database, hub: Hub): Router {
     const id = Number(req.params.id);
     const body = req.body as Record<string, unknown>;
     if (body.tagId) addTaskTag(db, id, Number(body.tagId), userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.render('partials/task-tags', tagsCtx(id, userId));
   });
 
@@ -87,14 +87,14 @@ export function tasksRouter(db: Database.Database, hub: Hub): Router {
     const userId = ensureUserId(req);
     const id = Number(req.params.id);
     removeTaskTag(db, id, Number(req.params.tagId), userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.render('partials/task-tags', tagsCtx(id, userId));
   });
 
   r.post('/clients', (req: Request, res: Response) => {
     const userId = ensureUserId(req);
     createClient(db, { name: 'New client' }, userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.render('partials/task-list', listCtx(userId));
   });
 
@@ -118,14 +118,14 @@ export function tasksRouter(db: Database.Database, hub: Hub): Router {
       currency: ((body.currency as string) || 'USD').trim() || 'USD',
       address: (body.address as string) || '',
     }, userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.render('partials/client-group', { group: groupOf(id, userId) });
   });
 
   r.post('/clients/:id/delete', (req: Request, res: Response) => {
     const userId = ensureUserId(req);
     deleteClient(db, Number(req.params.id), userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.render('partials/task-list', listCtx(userId));
   });
 

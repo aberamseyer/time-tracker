@@ -67,7 +67,7 @@ export function sessionsRouter(db: Database.Database, hub: Hub): Router {
       ...(times ?? {}),
     }, userId);
     setSessionTags(db, id, idsFrom(body, 'tagId'), userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     const s = decorateSession(db, getSession(db, id, userId)!, Date.now(), rounding(userId), userId);
     res.render('partials/session-row', { s, fmtDuration });
   });
@@ -90,14 +90,14 @@ export function sessionsRouter(db: Database.Database, hub: Hub): Router {
     let tagIds = idsFrom(body, 'tagId');
     if (taskId) tagIds = [...new Set([...tagIds, ...taskTagIds(db, taskId, userId)])];
     setSessionTags(db, id, tagIds, userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.render('partials/manual-add', { taskGroups: listActiveTasksByClient(db, userId), tags: listTags(db, userId), error: null });
   });
 
   r.post('/sessions/:id/delete', (req: Request, res: Response) => {
     const userId = ensureUserId(req);
     deleteSession(db, Number(req.params.id), userId);
-    hub.broadcast('changed');
+    hub.notify(userId, 'changed');
     res.status(200).end();
   });
 
