@@ -4,13 +4,16 @@ import type { SettingsRow } from './types.js';
 const ROUNDING: Set<number> = new Set([0, 15, 30, 60]);
 const GROUPING: Set<string> = new Set(['day', 'week', 'month', 'quarter']);
 
-export function getSettings(db: Database.Database): SettingsRow {
-  return db.prepare('SELECT * FROM settings WHERE id = 1').get() as SettingsRow;
+export function getSettings(db: Database.Database, userId: number): SettingsRow {
+  return db.prepare('SELECT * FROM settings WHERE user_id = ?').get(userId) as SettingsRow ?? { 
+    user_id: userId, business_from: '', currency: 'USD', week_start: 1, timezone: 'UTC', rounding_minutes: 0, session_grouping: 'day' 
+  };
 }
 
 // Update only the provided fields; validate each.
 export function updateSettings(
   db: Database.Database,
+  userId: number,
   { roundingMinutes, sessionGrouping, weekStart }: { roundingMinutes?: unknown; sessionGrouping?: unknown; weekStart?: unknown } = {}
 ): void {
   const sets: string[] = [], vals: (string | number)[] = [];
@@ -29,5 +32,5 @@ export function updateSettings(
     sets.push('week_start = ?'); vals.push(w);
   }
   if (!sets.length) return;
-  db.prepare(`UPDATE settings SET ${sets.join(', ')} WHERE id = 1`).run(...vals);
+  db.prepare(`UPDATE settings SET ${sets.join(', ')} WHERE user_id = ?`).run(...vals, userId);
 }

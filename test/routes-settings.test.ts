@@ -19,7 +19,7 @@ test('posting rounding updates settings', async () => {
   await login(agent, db);
   const res = await agent.post('/settings').type('form').send({ roundingMinutes: '30' });
   assert.equal(res.status, 302);
-  assert.equal(getSettings(db).rounding_minutes, 30);
+  assert.equal(getSettings(db, 1).rounding_minutes, 30);
 });
 
 test('invalid rounding re-renders with error', async () => {

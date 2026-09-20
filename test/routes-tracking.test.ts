@@ -14,7 +14,7 @@ test('start creates a running session and broadcasts', async () => {
   await login(agent, db);
   const res = await agent.post('/timer/start');
   assert.equal(res.status, 200);
-  assert.ok(getActiveSession(db));
+  assert.ok(getActiveSession(db, 1));
   assert.deepEqual(events, ['changed']);
 });
 
@@ -26,19 +26,19 @@ test('pause then resume keeps one active session', async () => {
   await agent.post('/timer/pause');
   await agent.post('/timer/resume');
   await agent.post('/timer/stop');
-  assert.equal(getActiveSession(db), undefined);
+  assert.equal(getActiveSession(db, 1), undefined);
 });
 
 test('edit while running updates description and task', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const t = createTask(db, { name: 'Paid' });
+  const t = createTask(db, { name: 'Paid', userId: 1 });
   await agent.post('/timer/start');
-  const id = getActiveSession(db)!.id;
+  const id = getActiveSession(db, 1)!.id;
   const res = await agent.post('/timer/update').type('form').send({ description: 'Live edit', taskId: String(t) });
   assert.equal(res.status, 200);
-  const s = getSession(db, id)!;
+  const s = getSession(db, id, 1)!;
   assert.equal(s.description, 'Live edit');
   assert.equal(s.task_id, t);
 });
@@ -47,8 +47,8 @@ test('active session is excluded from the list', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  createSession(db, { description: 'DONEONE', startUtc: 1, endUtc: 2 });
-  createSession(db, { description: 'ACTIVEONE', startUtc: Date.now(), endUtc: null });
+  createSession(db, { description: 'DONEONE', startUtc: 1, endUtc: 2, userId: 1 });
+  createSession(db, { description: 'ACTIVEONE', startUtc: Date.now(), endUtc: null, userId: 1 });
   const res = await agent.get('/partials/tracking-list');
   assert.match(res.text, /DONEONE/);
   assert.doesNotMatch(res.text, /ACTIVEONE/);
@@ -58,9 +58,9 @@ test('monthly grouping paginates one period per page', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  updateSettings(db, { sessionGrouping: 'month' });
-  createSession(db, { description: 'SEPWORK', startUtc: Date.parse('2026-09-15T10:00Z'), endUtc: Date.parse('2026-09-15T11:00Z') });
-  createSession(db, { description: 'AUGWORK', startUtc: Date.parse('2026-08-15T10:00Z'), endUtc: Date.parse('2026-08-15T11:00Z') });
+  updateSettings(db, 1, { sessionGrouping: 'month' });
+  createSession(db, { description: 'SEPWORK', startUtc: Date.parse('2026-09-15T10:00Z'), endUtc: Date.parse('2026-09-15T11:00Z'), userId: 1 });
+  createSession(db, { description: 'AUGWORK', startUtc: Date.parse('2026-08-15T10:00Z'), endUtc: Date.parse('2026-08-15T11:00Z'), userId: 1 });
   const first = await agent.get('/partials/tracking-list');
   assert.match(first.text, /SEPWORK/);
   assert.doesNotMatch(first.text, /AUGWORK/);
@@ -73,13 +73,13 @@ test('naming running work autocompletes empty fields from history', async () => 
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  const t = createTask(db, { name: 'Dev' });
-  createSession(db, { description: 'Standup', details: 'daily', taskId: t, startUtc: 1, endUtc: 2 });
+  const t = createTask(db, { name: 'Dev', userId: 1 });
+  createSession(db, { description: 'Standup', details: 'daily', taskId: t, startUtc: 1, endUtc: 2, userId: 1 });
   await agent.post('/timer/start');
-  const id = getActiveSession(db)!.id;
+  const id = getActiveSession(db, 1)!.id;
   // only description sent; details/task empty -> filled from template
   await agent.post('/timer/update').type('form').send({ description: 'Standup', details: '', taskId: '' });
-  const s = getSession(db, id)!;
+  const s = getSession(db, id, 1)!;
   assert.equal(s.details, 'daily');
   assert.equal(s.task_id, t);
 });
@@ -89,24 +89,24 @@ test('timer start-time clamps to [local midnight, now] on real instants', async 
   const agent = request.agent(app);
   await login(agent, db);
   await agent.post('/timer/start').type('form').send({ tz: '0' });
-  const id = getActiveSession(db)!.id;
+  const id = getActiveSession(db, 1)!.id;
   const now = Date.now();
   await agent.post('/timer/start-time').type('form').send({ start: String(now - 2 * 3600000), tz: '0' });
-  assert.equal(getSession(db, id)!.start_utc, now - 2 * 3600000);
+  assert.equal(getSession(db, id, 1)!.start_utc, now - 2 * 3600000);
   await agent.post('/timer/start-time').type('form').send({ start: String(now + 3600000), tz: '0' });
-  assert.ok(getSession(db, id)!.start_utc! <= Date.now() + 1000);
+  assert.ok(getSession(db, id, 1)!.start_utc! <= Date.now() + 1000);
   const midnight = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
   await agent.post('/timer/start-time').type('form').send({ start: String(midnight - 5 * 3600000), tz: '0' });
-  assert.ok(getSession(db, id)!.start_utc! >= midnight);
+  assert.ok(getSession(db, id, 1)!.start_utc! >= midnight);
 });
 
 test('timer split closes an overdue running session', async () => {
   const { app, db } = makeApp();
   const agent = request.agent(app);
   await login(agent, db);
-  createSession(db, { description: 'overnight', startUtc: Date.now() - 2 * 86400000, endUtc: null });
+  createSession(db, { description: 'overnight', startUtc: Date.now() - 2 * 86400000, endUtc: null, userId: 1 });
   const res = await agent.post('/timer/split').type('form').send({ tz: '0' });
   assert.equal(res.status, 204);
   const todayMidnight = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
-  assert.equal(getActiveSession(db)!.start_utc, todayMidnight);
+  assert.equal(getActiveSession(db, 1)!.start_utc, todayMidnight);
 });

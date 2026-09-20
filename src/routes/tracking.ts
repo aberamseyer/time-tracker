@@ -7,6 +7,10 @@ import { getSettings } from '../settings.js';
 import { dayStartUTC, periodOf } from '../analytics.js';
 import type { Hub, HydratedSession, SessionFilter, SessionGroup } from '../types.js';
 
+function ensureUserId(req: Request): number {
+  return (req.session && req.session.userId) ? req.session.userId : 0;
+}
+
 // Periods loaded per infinite-scroll page.
 const PAGE = 1;
 
@@ -48,10 +52,11 @@ export function groupSessions(
   rounding: number,
   unit = 'day',
   weekStart = 1,
+  userId = 0,
 ): SessionGroup[] {
   const groups: Map<number, SessionGroup> = new Map();
   for (const s of sessions) {
-    const d = decorateSession(db, s, now, rounding);
+    const d = decorateSession(db, s, now, rounding, userId);
     const anchor = s.start_utc ?? s.created_at;
     const b = bucketOf(unit, anchor, weekStart);
     if (!groups.has(b.start)) {
@@ -67,16 +72,16 @@ export function groupSessions(
 
 export function trackingRouter(db: Database.Database, hub: Hub): Router {
   const r = express.Router();
-  const rounding = () => getSettings(db).rounding_minutes;
-  const grouping = () => { const s = getSettings(db); return { unit: s.session_grouping || 'day', weekStart: s.week_start ?? 1 }; };
+  const rounding = (userId = 0) => getSettings(db, userId).rounding_minutes;
+  const grouping = (userId = 0) => { const s = getSettings(db, userId); return { unit: s.session_grouping || 'day', weekStart: s.week_start ?? 1 }; };
 
   // All completed sessions for the query, grouped by the chosen period.
-  function allGroups(q: Record<string, unknown>) {
-    const g = grouping();
-    return groupSessions(db, listSessions(db, filterFrom(q)), Date.now(), rounding(), g.unit, g.weekStart);
+  function allGroups(q: Record<string, unknown>, userId: number) {
+    const g = grouping(userId);
+    return groupSessions(db, listSessions(db, filterFrom(q), userId), Date.now(), rounding(userId), g.unit, g.weekStart, userId);
   }
-  function pageCtx(q: Record<string, unknown>) {
-    const groups = allGroups(q);
+  function pageCtx(q: Record<string, unknown>, userId: number) {
+    const groups = allGroups(q, userId);
     const offset = Math.max(0, Number(q.offset) || 0);
     return {
       groups: groups.slice(offset, offset + PAGE),
@@ -87,8 +92,9 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
     };
   }
 
-  function activeCtx() {
-    return { state: timerState(db, Date.now()), taskGroups: listActiveTasksByClient(db), tags: listTags(db), fmtDuration };
+  function activeCtx(req: Request) {
+    const userId = ensureUserId(req);
+    return { state: timerState(db, Date.now(), userId), taskGroups: listActiveTasksByClient(db, userId), tags: listTags(db, userId), fmtDuration };
   }
 
   function idsFrom(v: unknown): number[] {
@@ -104,29 +110,30 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
       invertTag: q.invertTag ? true : undefined,
     };
   }
-  function filterCtx(q: Record<string, unknown>) {
+  function filterCtx(req: Request) {
+    const userId = ensureUserId(req);
     return {
-      tasks: listTasks(db), tags: listTags(db), q,
-      selTasks: idsFrom(q.taskId), selTags: idsFrom(q.tagId),
+      tasks: listTasks(db, userId), tags: listTags(db, userId), q: req.query,
+      selTasks: idsFrom(req.query.taskId), selTags: idsFrom(req.query.tagId),
     };
   }
 
   r.get('/', (req: Request, res: Response) => {
     res.render('tracking', {
       title: 'Time tracking', nav: 'tracking',
-      ...activeCtx(), ...filterCtx(req.query), ...pageCtx(req.query), fmtMoney, descriptions: distinctDescriptions(db, '', 50),
+      ...activeCtx(req), ...filterCtx(req), ...pageCtx(req.query, ensureUserId(req)), fmtMoney, descriptions: distinctDescriptions(db, '', 50, ensureUserId(req)),
     });
   });
 
   r.get('/partials/active-timer', (req: Request, res: Response) =>
-    res.render('partials/active-timer', activeCtx()));
+    res.render('partials/active-timer', activeCtx(req)));
 
   r.get('/partials/tracking-list', (req: Request, res: Response) =>
-    res.render('partials/tracking-list', pageCtx(req.query)));
+    res.render('partials/tracking-list', pageCtx(req.query, ensureUserId(req))));
 
-  function afterMutation(res: Response) {
+  function afterMutation(req: Request, res: Response) {
     hub.broadcast('changed');
-    res.render('partials/active-timer', activeCtx());
+    res.render('partials/active-timer', activeCtx(req));
   }
 
   const tzOf = (req: Request) => {
@@ -134,17 +141,18 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
     return raw == null || raw === '' ? new Date().getTimezoneOffset() : Number(raw) || 0;
   };
 
-  r.post('/timer/start', (req: Request, res: Response) => { startTimer(db, Date.now(), { tzMin: tzOf(req) }); afterMutation(res); });
-  r.post('/timer/pause', (req: Request, res: Response) => { pauseTimer(db, Date.now()); afterMutation(res); });
-  r.post('/timer/resume', (req: Request, res: Response) => { resumeTimer(db, Date.now()); afterMutation(res); });
-  r.post('/timer/stop', (req: Request, res: Response) => { stopTimer(db, Date.now(), tzOf(req)); afterMutation(res); });
-  r.post('/timer/start-from/:id', (req: Request, res: Response) => { startTimerFrom(db, Date.now(), Number(req.params.id), tzOf(req)); afterMutation(res); });
+  r.post('/timer/start', (req: Request, res: Response) => { startTimer(db, Date.now(), { tzMin: tzOf(req), userId: ensureUserId(req) }); afterMutation(req, res); });
+  r.post('/timer/pause', (req: Request, res: Response) => { pauseTimer(db, Date.now(), ensureUserId(req)); afterMutation(req, res); });
+  r.post('/timer/resume', (req: Request, res: Response) => { resumeTimer(db, Date.now(), ensureUserId(req)); afterMutation(req, res); });
+  r.post('/timer/stop', (req: Request, res: Response) => { stopTimer(db, Date.now(), tzOf(req), ensureUserId(req)); afterMutation(req, res); });
+  r.post('/timer/start-from/:id', (req: Request, res: Response) => { startTimerFrom(db, Date.now(), Number(req.params.id), tzOf(req), ensureUserId(req)); afterMutation(req, res); });
 
   // Autosave the running editor. When the description changes to a known one,
   // fill still-empty details/task/tags from the most recent matching session
   // (autocomplete), without clobbering values the user already set.
   r.post('/timer/update', (req: Request, res: Response) => {
-    const active = getActiveSession(db);
+    const userId = ensureUserId(req);
+    const active = getActiveSession(db, userId);
     if (active) {
       const body = req.body as Record<string, unknown>;
       const description = (body.description as string) ?? '';
@@ -152,7 +160,7 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
       let taskId = body.taskId ? Number(body.taskId) : null;
       let tagIds = (Array.isArray(body.tagId) ? body.tagId : body.tagId ? [body.tagId] : []).map(Number).filter(Boolean);
       if (description && description !== active.description) {
-        const tpl = latestByDescription(db, description);
+        const tpl = latestByDescription(db, description, userId);
         if (tpl) {
           if (!details) details = tpl.details;
           if (taskId == null) taskId = tpl.task_id;
@@ -161,31 +169,33 @@ export function trackingRouter(db: Database.Database, hub: Hub): Router {
       }
       // Assigning a task adds its default tags (without clobbering current ones).
       if (taskId != null && taskId !== active.task_id) {
-        tagIds = [...new Set([...tagIds, ...taskTagIds(db, taskId)])];
+        tagIds = [...new Set([...tagIds, ...taskTagIds(db, taskId, userId)])];
       }
-      updateSession(db, active.id, { description, details, taskId });
-      setSessionTags(db, active.id, tagIds);
+      updateSession(db, active.id, { description, details, taskId }, userId);
+      setSessionTags(db, active.id, tagIds, userId);
     }
-    afterMutation(res);
+    afterMutation(req, res);
   });
 
   // Editable start; no broadcast/swap — the client updates the clock in place.
   // Clamp to the local calendar day and non-negative elapsed.
   r.post('/timer/start-time', (req: Request, res: Response) => {
-    const active = getActiveSession(db);
+    const userId = ensureUserId(req);
+    const active = getActiveSession(db, userId);
     const body = req.body as Record<string, unknown>;
     const start = Number(body.start), tzMin = tzOf(req);
     if (active && Number.isFinite(start)) {
       const off = tzMin * 60000, now = Date.now();
       const lo = civilDayStart(now - off) + off;                        // local midnight today (real)
       const hi = (active.pause_started_at ?? now) - (active.paused_ms || 0);
-      updateSession(db, active.id, { startUtc: Math.min(hi, Math.max(lo, start)) });
+      updateSession(db, active.id, { startUtc: Math.min(hi, Math.max(lo, start)) }, userId);
     }
     res.status(204).end();
   });
 
   r.post('/timer/split', (req: Request, res: Response) => {
-    if (splitExpiredDays(db, Date.now(), tzOf(req))) hub.broadcast('changed');
+    const userId = ensureUserId(req);
+    if (splitExpiredDays(db, Date.now(), tzOf(req), userId)) hub.broadcast('changed');
     res.status(204).end();
   });
 

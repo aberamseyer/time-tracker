@@ -47,6 +47,8 @@ Single-user time tracker. Express + EJS server-rendered HTML, htmx for partial u
 
 **Schema & migrations.** `src/db.js` holds the schema and runs on every `openDb()`. Additive migrations only: add the column to the `CREATE TABLE` for fresh DBs *and* an idempotent `addColumn()` call in `migrate()` for existing DBs. There is one `settings` row (`id = 1`); `updateSettings` patches only provided fields.
 
+**Hygiene.** Update `types.ts` interfaces immediately when schema changes. Add `user_id` validation to linking tables (e.g., `task_tag`) to prevent cross-user associations. Verify conditional SQL array binding (`.get([...])`) after every `WHERE` change. When adding columns, add to `CREATE TABLE` and `migrate()` `addColumn()`.
+
 ## Deploy
 
 CI (`.github/workflows/deploy.yml`) builds and tests in the cloud, uploads `dist/` as an artifact, then a self-hosted runner downloads it, rsyncs the tree to a VPS, and restarts a systemd unit running `dist/src/server.js`. Native deps (`better-sqlite3`) are rebuilt against an LTS node pinned by `.nvmrc`; node >=24 required. Full setup in `deploy/README.md`. Never add `pull_request`/`pull_request_target` triggers to the self-hosted deploy job.

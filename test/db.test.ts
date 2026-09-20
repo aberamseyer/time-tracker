@@ -13,13 +13,15 @@ test('migrations create all tables (no segment)', () => {
 
 test('settings row seeded with defaults', () => {
   const db = openDb(':memory:');
-  const s = db.prepare('SELECT * FROM settings WHERE id = 1').get() as { rounding_minutes: number };
+  const s = db.prepare('SELECT * FROM settings WHERE user_id = 1').get() as { rounding_minutes: number };
   assert.equal(s.rounding_minutes, 0);
 });
 
-test('only one active session allowed', () => {
+test('only one active session allowed per user', () => {
   const db = openDb(':memory:');
-  const ins = db.prepare('INSERT INTO session (created_at, start_utc, end_utc) VALUES (?, ?, NULL)');
-  ins.run(1, 1);
-  assert.throws(() => ins.run(2, 2));
+  const ins = db.prepare('INSERT INTO session (created_at, start_utc, end_utc, user_id) VALUES (?, ?, NULL, ?)');
+  ins.run(1, 1, 1);
+  assert.throws(() => ins.run(2, 2, 1));
+  // Different user can have active session
+  ins.run(3, 3, 2);
 });

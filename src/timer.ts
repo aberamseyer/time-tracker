@@ -12,7 +12,10 @@ export function civilDayStart(civilMs: number): number {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
-export function getActiveSession(db: Database.Database): SessionRow | undefined {
+export function getActiveSession(db: Database.Database, userId: number = 0): SessionRow | undefined {
+  if (userId) {
+    return db.prepare('SELECT * FROM session WHERE user_id = ? AND end_utc IS NULL').get(userId) as SessionRow | undefined;
+  }
   return db.prepare('SELECT * FROM session WHERE end_utc IS NULL').get() as SessionRow | undefined;
 }
 
@@ -21,8 +24,8 @@ function foldPause(active: SessionRow, now: number): number {
   return active.pause_started_at == null ? 0 : now - active.pause_started_at;
 }
 
-export function stopTimer(db: Database.Database, now: number, tzMin = 0): number | null {
-  const active = getActiveSession(db);
+export function stopTimer(db: Database.Database, now: number, tzMin = 0, userId = 0): number | null {
+  const active = getActiveSession(db, userId);
   if (!active) return null;
   const off = tzMin * 60000;
   updateSession(db, active.id, {
@@ -30,64 +33,65 @@ export function stopTimer(db: Database.Database, now: number, tzMin = 0): number
     endUtc: now - off,
     pausedMs: active.paused_ms + foldPause(active, now),
     pauseStartedAt: null,
-  });
+  }, userId);
   return active.id;
 }
 
 export function startTimer(
   db: Database.Database,
   now: number,
-  { taskId, description = '', tzMin = 0 }: { taskId?: number | null; description?: string; tzMin?: number } = {},
+  { taskId, description = '', tzMin = 0, userId = 0 }: { taskId?: number | null; description?: string; tzMin?: number; userId?: number } = {},
 ): number {
   const tx = db.transaction(() => {
-    stopTimer(db, now, tzMin);
-    const tid = taskId ?? (defaultTask(db)?.id ?? null);
-    const id = createSession(db, { taskId: tid, description, startUtc: now, endUtc: null, createdAt: now });
-    if (tid) setSessionTags(db, id, taskTagIds(db, tid));
+    stopTimer(db, now, tzMin, userId);
+    const tid = taskId ?? (defaultTask(db, userId)?.id ?? null);
+    const id = createSession(db, { taskId: tid, description, startUtc: now, endUtc: null, createdAt: now, userId });
+    if (tid) setSessionTags(db, id, taskTagIds(db, tid, userId));
     return id;
   });
   return tx();
 }
 
 // Start a new running session copying a past one's description, details, task, tags.
-export function startTimerFrom(db: Database.Database, now: number, sourceId: number, tzMin = 0): number | null {
-  const src = getSession(db, sourceId);
+export function startTimerFrom(db: Database.Database, now: number, sourceId: number, tzMin = 0, userId = 0): number | null {
+  const src = getSession(db, sourceId, userId);
   if (!src) return null;
   const tx = db.transaction(() => {
-    stopTimer(db, now, tzMin);
+    stopTimer(db, now, tzMin, userId);
     const id = createSession(db, {
       description: src.description, details: src.details, taskId: src.task_id,
       startUtc: now, endUtc: null, createdAt: now,
+      userId,
     });
-    setSessionTags(db, id, src.tags.map(t => t.id));
+    setSessionTags(db, id, src.tags.map(t => t.id), userId);
     return id;
   });
   return tx();
 }
 
-export function pauseTimer(db: Database.Database, now: number): number | null {
-  const active = getActiveSession(db);
+export function pauseTimer(db: Database.Database, now: number, userId = 0): number | null {
+  const active = getActiveSession(db, userId);
   if (!active || active.pause_started_at != null) return active ? active.id : null;
-  updateSession(db, active.id, { pauseStartedAt: now });
+  updateSession(db, active.id, { pauseStartedAt: now }, userId);
   return active.id;
 }
 
-export function resumeTimer(db: Database.Database, now: number): number | null {
-  const active = getActiveSession(db);
+export function resumeTimer(db: Database.Database, now: number, userId = 0): number | null {
+  const active = getActiveSession(db, userId);
   if (!active || active.pause_started_at == null) return active ? active.id : null;
   updateSession(db, active.id, {
     pausedMs: active.paused_ms + (now - active.pause_started_at),
     pauseStartedAt: null,
-  });
+  }, userId);
   return active.id;
 }
 
 // Keep the running session inside its local calendar day.
-export function splitExpiredDays(db: Database.Database, now: number, tzMin: number): boolean {
+export function splitExpiredDays(db: Database.Database, now: number, tzMin: number, userId = 0): boolean {
   const off = tzMin * 60000;
   const nowDay = civilDayStart(now - off);
   let changed = false;
-  let active = getActiveSession(db);
+  let active = getActiveSession(db, userId);
   while (active) {
     const startCivil = active.start_utc! - off;
     const dayStart = civilDayStart(startCivil);
@@ -97,17 +101,18 @@ export function splitExpiredDays(db: Database.Database, now: number, tzMin: numb
       (active.pause_started_at != null ? Math.max(0, boundaryReal - active.pause_started_at) : 0);
     updateSession(db, active.id, {
       startUtc: startCivil, endUtc: dayStart + DAY - 1, pausedMs: paused, pauseStartedAt: null,
-    });
-    const src = getSession(db, active.id)!;
+    }, userId);
+    const src = getSession(db, active.id, userId)!;
     const wasPaused = active.pause_started_at != null;
     const id = createSession(db, {
       description: src.description, details: src.details, taskId: src.task_id,
       startUtc: boundaryReal, endUtc: null, createdAt: boundaryReal,
       pauseStartedAt: wasPaused ? boundaryReal : null,
+      userId,
     });
-    setSessionTags(db, id, src.tags.map(t => t.id));
+    setSessionTags(db, id, src.tags.map(t => t.id), userId);
     changed = true;
-    active = getActiveSession(db);
+    active = getActiveSession(db, userId);
   }
   return changed;
 }
@@ -115,9 +120,11 @@ export function splitExpiredDays(db: Database.Database, now: number, tzMin: numb
 export function timerState(
   db: Database.Database,
   now: number,
+  userId = 0,
 ): { state: 'none' | 'paused' | 'running'; session: DecoratedSession | null } {
-  const active = getActiveSession(db);
+  const active = getActiveSession(db, userId);
   if (!active) return { state: 'none', session: null };
-  const session = decorateSession(db, getSession(db, active.id)!, now, getSettings(db).rounding_minutes);
+  const effectiveUserId = userId || active.user_id;
+  const session = decorateSession(db, getSession(db, active.id, effectiveUserId)!, now, getSettings(db, effectiveUserId).rounding_minutes);
   return { state: session.paused ? 'paused' : 'running', session };
 }

@@ -16,10 +16,10 @@ function mdLabel(ms: number): string {
 // Aggregate completed sessions into buckets (day or week) grouped by task or tag.
 export function buildReport(db: Database.Database, {
   from, to, unit = 'day', by = 'task', metric = 'time', rounding = 0,
-  clientId = null, taskIds = [], tagIds = [],
+  clientId = null, taskIds = [], tagIds = [], userId = 0,
 }: {
   from: number; to: number; unit?: 'day' | 'week'; by?: 'task' | 'tag'; metric?: 'time' | 'earnings';
-  rounding?: number; clientId?: number | null; taskIds?: number[]; tagIds?: number[];
+  rounding?: number; clientId?: number | null; taskIds?: number[]; tagIds?: number[]; userId?: number;
 }): Report {
   const size = unit === 'week' ? 7 * DAY : DAY;
   const start = dayStartUTC(from);
@@ -31,7 +31,7 @@ export function buildReport(db: Database.Database, {
   if (clientId) filter.clientId = clientId;
   if (taskIds.length) filter.taskIds = taskIds;
   if (tagIds.length) filter.tagIds = tagIds;
-  const sessions = listSessions(db, filter).filter(s => s.end_utc != null);
+  const sessions = listSessions(db, filter, userId).filter(s => s.end_utc != null);
   const seriesMap: Map<string, Series> = new Map();
   const ensure = (key: string, name: string, color: string): Series => {
     if (!seriesMap.has(key)) seriesMap.set(key, { key, name, color, values: buckets.map(() => 0), total: 0 });
@@ -40,7 +40,7 @@ export function buildReport(db: Database.Database, {
   for (const s of sessions) {
     const bi = Math.floor((dayStartUTC(s.start_utc!) - start) / size);
     if (bi < 0 || bi >= n) continue;
-    const dec = decorateSession(db, s, Date.now(), rounding);
+    const dec = decorateSession(db, s, Date.now(), rounding, userId);
     const value = metric === 'earnings' ? dec.earningsCents : dec.roundedMs;
     if (by === 'tag') {
       const tags = s.tags.length ? s.tags : [{ id: 0, name: 'Untagged', color: GREY, archived: 0 }];

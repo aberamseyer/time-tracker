@@ -30,22 +30,22 @@ const between = (lo: number, hi: number): number => lo + Math.floor(rand() * (hi
 const db = openDb(path);
 
 // Fresh catalog/sessions; keep the settings row.
-db.exec(`DELETE FROM session_tag; DELETE FROM task_tag; DELETE FROM session;
+db.exec(`DELETE FROM user; DELETE FROM session_tag; DELETE FROM task_tag; DELETE FROM session;
          DELETE FROM task; DELETE FROM tag; DELETE FROM client;`);
 
-seedUser(db, process.env.TT_USERNAME || 'demo', process.env.TT_PASSWORD || 'demo');
+const userId = seedUser(db, process.env.TT_USERNAME || 'demo', process.env.TT_PASSWORD || 'demo');
 
 const clients = [
-  createClient(db, { name: 'Acme Co', defaultRateCents: 12000 }),
-  createClient(db, { name: 'Globex', defaultRateCents: 9500 }),
+  createClient(db, { name: 'Acme Co', defaultRateCents: 12000 }, userId),
+  createClient(db, { name: 'Globex', defaultRateCents: 9500 }, userId),
 ];
 
 const tags = {
-  billable: createTag(db, { name: 'billable', color: TAG_COLORS[0] }),
-  internal: createTag(db, { name: 'internal', color: TAG_COLORS[1] }),
-  meeting: createTag(db, { name: 'meeting', color: TAG_COLORS[2] }),
-  bug: createTag(db, { name: 'bug', color: TAG_COLORS[3] }),
-  research: createTag(db, { name: 'research', color: TAG_COLORS[4] }),
+  billable: createTag(db, { name: 'billable', color: TAG_COLORS[0] }, userId),
+  internal: createTag(db, { name: 'internal', color: TAG_COLORS[1] }, userId),
+  meeting: createTag(db, { name: 'meeting', color: TAG_COLORS[2] }, userId),
+  bug: createTag(db, { name: 'bug', color: TAG_COLORS[3] }, userId),
+  research: createTag(db, { name: 'research', color: TAG_COLORS[4] }, userId),
 };
 
 // [name, color, rateCents, clientId, defaultTagIds, descriptions]
@@ -59,7 +59,7 @@ const taskSpecs: [string, string, number | null, number | null, number[], string
 
 const tasks: { id: number; defTags: number[]; descs: string[] }[] = taskSpecs.map(
   ([name, color, rate, clientId, defTags, descs]) => {
-    const id = createTask(db, { name, color, hourlyRateCents: rate, clientId });
+    const id = createTask(db, { name, color, hourlyRateCents: rate, clientId, userId });
     for (const t of defTags) addTaskTag(db, id, t);
     return { id, defTags, descs };
   }
@@ -89,7 +89,7 @@ const insert = db.transaction(() => {
         description: pick(task.descs),
         details: rand() < 0.3 ? 'Follow-up notes.' : '',
         taskId: task.id,
-        startUtc, endUtc, pausedMs, createdAt: startUtc,
+        startUtc, endUtc, pausedMs, createdAt: startUtc, userId: userId
       });
       const extra = rand() < 0.2 ? [pick(Object.values(tags))] : [];
       setSessionTags(db, id, [...new Set([...task.defTags, ...extra])]);

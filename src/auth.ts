@@ -15,12 +15,11 @@ export function verifyPassword(pw: string, hash: string): boolean {
   return bcrypt.compareSync(pw, hash);
 }
 
-export function seedUser(db: Database.Database, username: string, password: string): void {
-  db.prepare(
-    `INSERT INTO user (id, username, password_hash) VALUES (1, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET username = excluded.username,
-     password_hash = excluded.password_hash`
-  ).run(username, hashPassword(password));
+export function seedUser(db: Database.Database, username: string, password: string): number {
+  return db.prepare(
+    `INSERT INTO user (username, password_hash) VALUES (?, ?)
+     ON CONFLICT(username) DO UPDATE SET password_hash = excluded.password_hash`
+  ).run(username, hashPassword(password)).lastInsertRowid as number;
 }
 
 export function getUser(db: Database.Database, username: string): UserRow | undefined {

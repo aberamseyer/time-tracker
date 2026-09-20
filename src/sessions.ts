@@ -9,15 +9,17 @@ export function createSession(db: Database.Database, {
   description = '', details = '', taskId = null,
   startUtc, endUtc = null, pausedMs = 0, pauseStartedAt = null,
   createdAt = Date.now(),
+  userId,
 }: {
   description?: string; details?: string; taskId?: number | null;
   startUtc?: number | null; endUtc?: number | null; pausedMs?: number;
   pauseStartedAt?: number | null; createdAt?: number;
+  userId?: number;
 } = {}): number {
   return db.prepare(
-    `INSERT INTO session (description, details, task_id, created_at, start_utc, end_utc, paused_ms, pause_started_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(description, details, taskId, createdAt, startUtc, endUtc, pausedMs, pauseStartedAt).lastInsertRowid as number;
+    `INSERT INTO session (description, details, task_id, created_at, start_utc, end_utc, paused_ms, pause_started_at, user_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(description, details, taskId, createdAt, startUtc, endUtc, pausedMs, pauseStartedAt, userId ?? 0).lastInsertRowid as number;
 }
 
 const COLS: Record<string, string> = {
@@ -29,59 +31,62 @@ export function updateSession(
   db: Database.Database,
   id: number,
   fields: Partial<Record<'description' | 'details' | 'taskId' | 'startUtc' | 'endUtc' | 'pausedMs' | 'pauseStartedAt', unknown>>,
+  userId: number,
 ): void {
   const sets: string[] = [], vals: unknown[] = [];
   for (const [key, col] of Object.entries(COLS)) {
     if (key in fields) { sets.push(`${col} = ?`); vals.push((fields as Record<string, unknown>)[key]); }
   }
   if (!sets.length) return;
-  vals.push(id);
-  db.prepare(`UPDATE session SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+  vals.push(id, userId);
+  db.prepare(`UPDATE session SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...vals);
 }
 
-export function setSessionTags(db: Database.Database, id: number, tagIds: number[]): void {
+export function setSessionTags(db: Database.Database, id: number, tagIds: number[], userId = 0): void {
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM session_tag WHERE session_id = ?').run(id);
+    const validTagIds = userId ? tagIds.filter(t => db.prepare('SELECT 1 FROM tag WHERE id = ? AND user_id = ?').get(t, userId) ? t : null).filter(Boolean) : tagIds;
     const ins = db.prepare('INSERT OR IGNORE INTO session_tag (session_id, tag_id) VALUES (?, ?)');
-    for (const t of tagIds) ins.run(id, t);
+    for (const t of validTagIds) ins.run(id, t);
   });
   tx();
 }
 
-export function deleteSession(db: Database.Database, id: number): void {
-  db.prepare('DELETE FROM session WHERE id = ?').run(id);
+export function deleteSession(db: Database.Database, id: number, userId = 0): void {
+  db.prepare('DELETE FROM session WHERE id = ? AND user_id = ?').run(id, userId);
 }
 
-function hydrate(db: Database.Database, row: SessionRow): HydratedSession {
+function hydrate(db: Database.Database, row: SessionRow, userId = 0): HydratedSession {
   const tags = db.prepare(
-    `SELECT tag.* FROM tag JOIN session_tag st ON st.tag_id = tag.id
-     WHERE st.session_id = ? ORDER BY tag.name`
-  ).all(row.id) as TagRow[];
+    `SELECT tag.* FROM tag JOIN session_tag st ON st.tag_id = tag.id WHERE st.session_id = ? AND tag.user_id = ? ORDER BY tag.name`
+  ).all(row.id, userId) as TagRow[];
   const task = row.task_id
-    ? (db.prepare('SELECT * FROM task WHERE id = ?').get(row.task_id) as TaskRow | undefined) ?? null
+    ? (db.prepare('SELECT * FROM task WHERE id = ? AND user_id = ?').get(row.task_id, userId) as TaskRow | undefined) ?? null
     : null;
   return { ...row, tags, task };
 }
 
-export function getSession(db: Database.Database, id: number): HydratedSession | undefined {
-  const row = db.prepare('SELECT * FROM session WHERE id = ?').get(id) as SessionRow | undefined;
-  return row ? hydrate(db, row) : undefined;
+export function getSession(db: Database.Database, id: number, userId = 0): HydratedSession | undefined {
+  const w = userId ? 'AND user_id = ?' : '';
+  const row = db.prepare(`SELECT * FROM session WHERE id = ? ${w}`).get(userId ? [id, userId] : [id]) as SessionRow | undefined;
+  return row ? hydrate(db, row, userId) : undefined;
 }
 
-export function listSessions(db: Database.Database, filter: SessionFilter = {}): HydratedSession[] {
+export function listSessions(db: Database.Database, filter: SessionFilter = {}, userId: number = 0): HydratedSession[] {
   const where: string[] = [], vals: unknown[] = [];
+  if (userId) { where.push('s.user_id = ?'); vals.push(userId); }
   if (filter.completedOnly) where.push('s.end_utc IS NOT NULL');
   if (filter.q) { where.push('s.description LIKE ?'); vals.push('%' + filter.q + '%'); }
   if (filter.taskId) { where.push('s.task_id = ?'); vals.push(filter.taskId); }
   if (filter.unlabelled) where.push("s.description = ''");
   if (filter.uncategorized) where.push('s.task_id IS NULL');
   if (filter.clientId) {
-    where.push('s.task_id IN (SELECT id FROM task WHERE client_id = ?)');
-    vals.push(filter.clientId);
+    where.push('s.task_id IN (SELECT id FROM task WHERE client_id = ? AND user_id = ?)');
+    vals.push(filter.clientId, userId);
   }
   if (filter.tagId) {
-    where.push('EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id AND st.tag_id = ?)');
-    vals.push(filter.tagId);
+    where.push('EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id AND st.tag_id = ? AND st.session_id IN (SELECT id FROM session WHERE user_id = ?))');
+    vals.push(filter.tagId, userId);
   }
   // Multi-select filters; id 0 means "without task" / "without tag".
   if (filter.taskIds && filter.taskIds.length) {
@@ -94,7 +99,7 @@ export function listSessions(db: Database.Database, filter: SessionFilter = {}):
   if (filter.tagIds && filter.tagIds.length) {
     const ids = filter.tagIds.filter(x => x > 0);
     const parts: string[] = [];
-    if (ids.length) { parts.push(`EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id AND st.tag_id IN (${ids.map(() => '?').join(',')}))`); vals.push(...ids); }
+    if (ids.length) { parts.push(`EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id AND st.tag_id IN (${ids.map(() => '?').join(',')}) AND s.user_id = ?)`); vals.push(...ids, userId); }
     if (filter.tagIds.includes(0)) parts.push('NOT EXISTS (SELECT 1 FROM session_tag st WHERE st.session_id = s.id)');
     where.push(`${filter.invertTag ? 'NOT ' : ''}(${parts.join(' OR ')})`);
   }
@@ -103,7 +108,7 @@ export function listSessions(db: Database.Database, filter: SessionFilter = {}):
   const sql = `SELECT * FROM session s
     ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
     ORDER BY s.start_utc DESC, s.id DESC`;
-  return (db.prepare(sql).all(...vals) as SessionRow[]).map(row => hydrate(db, row));
+  return (db.prepare(sql).all(...vals) as SessionRow[]).map(row => hydrate(db, row, userId));
 }
 
 export function decorateSession(
@@ -111,32 +116,36 @@ export function decorateSession(
   session: HydratedSession,
   now: number,
   roundingMinutes: number,
+  userId = 0,
 ): DecoratedSession {
   const active = session.end_utc == null;
   const paused = active && session.pause_started_at != null;
   const running = active && !paused;
   const durationMs = sessionDurationMs(session, now);
   const roundedMs = active ? durationMs : roundUpDurationMs(durationMs, roundingMinutes);
-  const rate = effectiveRateCents(db, session.task_id);
+  const rate = effectiveRateCents(db, session.task_id, userId);
   return { ...session, active, paused, running, durationMs, roundedMs, earningsCents: earningsCents(roundedMs, rate) };
 }
 
-export function distinctDescriptions(db: Database.Database, q = '', limit = 8): string[] {
+export function distinctDescriptions(db: Database.Database, q = '', limit = 8, userId = 0): string[] {
+  const where = userId
+    ? 'WHERE s.user_id = ? AND description <> \'\' AND description LIKE ?'
+    : 'WHERE description <> \'\' AND description LIKE ?';
   return (db.prepare(
-    `SELECT description, MAX(start_utc) AS last FROM session
-     WHERE description <> '' AND description LIKE ?
-     GROUP BY description ORDER BY last DESC LIMIT ?`
-  ).all('%' + q + '%', limit) as { description: string; last: number }[]).map(r => r.description);
+    `SELECT description, MAX(start_utc) AS last FROM session s ${where} GROUP BY description ORDER BY last DESC LIMIT ?`
+  ).all(userId ? [userId, '%' + q + '%', limit] : ['%' + q + '%', limit]) as { description: string; last: number }[]).map(r => r.description);
 }
 
 export function latestByDescription(
   db: Database.Database,
   description: string,
+  userId = 0,
 ): { details: string; task_id: number | null; task: TaskRow | null; tags: TagRow[] } | null {
+  const where = userId ? 'WHERE description = ? AND user_id = ?' : 'WHERE description = ?';
   const row = db.prepare(
-    `SELECT * FROM session WHERE description = ? ORDER BY start_utc DESC, id DESC LIMIT 1`
-  ).get(description) as SessionRow | undefined;
+    `SELECT * FROM session ${where} ORDER BY start_utc DESC, id DESC LIMIT 1`
+  ).get(userId ? [description, userId] : [description]) as SessionRow | undefined;
   if (!row) return null;
-  const h = hydrate(db, row);
+  const h = hydrate(db, row, userId);
   return { details: h.details, task_id: h.task_id, task: h.task, tags: h.tags };
 }
