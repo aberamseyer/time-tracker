@@ -77,6 +77,13 @@ export function periodOf(type: string, ms: number, weekStart = 1): Period {
     return { type, start, from: start, to: Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 3, 0), unit: 'week',
       label: `Q${q} ${d.getUTCFullYear()}` };
   }
+  if (type === 'biweek') {
+    const ref = weekStartOf(0, weekStart);
+    const ws = weekStartOf(ms, weekStart);
+    const start = ref + Math.floor((ws - ref) / (14 * MS_PER_DAY)) * 14 * MS_PER_DAY;
+    const to = start + 13 * MS_PER_DAY;
+    return { type, start, from: start, to, unit: 'day', label: `${mdLabel(start)} – ${mdLabel(to)}` };
+  }
   const start = weekStartOf(ms, weekStart);
   return { type, start, from: start, to: start + 6 * MS_PER_DAY, unit: 'day', label: mdLabel(start) };
 }
@@ -85,6 +92,7 @@ function nextPeriodStart(type: string, start: number): number {
   const d = new Date(start);
   if (type === 'month') return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
   if (type === 'quarter') return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 3, 1);
+  if (type === 'biweek') return start + 14 * MS_PER_DAY;
   return start + 7 * MS_PER_DAY;
 }
 

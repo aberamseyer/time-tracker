@@ -86,3 +86,14 @@ test('listPeriods enumerates weeks between first and last session, newest first'
   assert.ok(weeks.length >= 3);
   assert.ok(weeks[0].ps > weeks[weeks.length - 1].ps); // newest first
 });
+
+test('biweek period is 14 days anchored to week start', () => {
+  const a = periodOf('biweek', Date.UTC(2026, 8, 16), 1); // Wed Sep 16 2026
+  assert.equal(a.to - a.from, 13 * 86400000);
+  assert.equal(a.unit, 'day');
+  assert.equal(new Date(a.start).getUTCDay(), 1); // Monday-aligned
+  const next = periodOf('biweek', a.start + 14 * 86400000, 1);
+  assert.equal(next.start, a.start + 14 * 86400000);
+  const within = periodOf('biweek', a.start + 5 * 86400000, 1);
+  assert.equal(within.start, a.start); // same fortnight
+});
