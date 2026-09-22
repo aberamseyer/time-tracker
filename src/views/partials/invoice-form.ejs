@@ -1,0 +1,33 @@
+<% if (!client) { %>
+  <p class="err">Select a client in the filters to invoice.</p>
+<% } else { %>
+<form method="post" action="/invoice" target="_blank" class="invoice-form">
+  <input type="hidden" name="type" value="<%= view.type %>">
+  <input type="hidden" name="ps" value="<%= view.ps %>">
+  <input type="hidden" name="clientId" value="<%= view.clientId %>">
+  <% view.taskIds.forEach(id => { %><input type="hidden" name="taskId" value="<%= id %>"><% }) %>
+  <% view.tagIds.forEach(id => { %><input type="hidden" name="tagId" value="<%= id %>"><% }) %>
+  <h2>Invoice — <%= client.name %></h2>
+  <label>Invoice # <input name="number" type="number" value="<%= number %>"></label>
+  <label>Date <input name="date" type="date" value="<%= today %>"></label>
+  <label>PO Number <input name="poNumber" type="text"></label>
+  <label>Notes <textarea name="notes"></textarea></label>
+  <fieldset class="oneoffs">
+    <legend>Extra line items</legend>
+    <div class="oo-rows">
+      <div class="oo-row">
+        <input name="ooName" placeholder="Name">
+        <input name="ooRate" type="number" step="0.01" placeholder="Rate">
+        <input name="ooQty" type="number" step="0.01" placeholder="Qty">
+      </div>
+    </div>
+    <button type="button" class="oo-add">Add line</button>
+  </fieldset>
+  <label>Discount % <input name="discountPct" type="number" step="0.01"></label>
+  <label>Tax % <input name="taxPct" type="number" step="0.01"></label>
+  <div class="invoice-form-actions">
+    <button type="submit">Generate</button>
+    <button type="button" class="dialog-close">Cancel</button>
+  </div>
+</form>
+<% } %>

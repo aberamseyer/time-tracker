@@ -9,6 +9,7 @@ import { sessionsRouter } from './routes/sessions.js';
 import { tasksRouter } from './routes/tasks.js';
 import { settingsRouter } from './routes/settings.js';
 import { analyticsRouter } from './routes/analytics.js';
+import { invoiceRouter } from './routes/invoice.js';
 import { version } from './version.js';
 import type { Hub } from './types.js';
 
@@ -33,6 +34,7 @@ export function createApp({ db, hub }: { db: Database.Database; hub: Hub }) {
   app.use(requireAuth, tasksRouter(db, hub));
   app.use(requireAuth, settingsRouter(db, hub));
   app.use(requireAuth, analyticsRouter(db));
+  app.use(requireAuth, invoiceRouter(db, hub));
 
   // eslint-disable-next-line no-unused-vars
   app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {

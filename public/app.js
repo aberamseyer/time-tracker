@@ -90,4 +90,18 @@
     if (t && (t.matches?.('#active-timer') || t.querySelector?.('.elapsed[data-start]'))) initClock();
   });
   initClock();
+
+  // Invoice modal: add-line + close/cancel handling.
+  document.body.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t.classList && t.classList.contains('oo-add')) {
+      const rows = t.closest('.oneoffs').querySelector('.oo-rows');
+      const clone = rows.querySelector('.oo-row').cloneNode(true);
+      clone.querySelectorAll('input').forEach((i) => (i.value = ''));
+      rows.appendChild(clone);
+    }
+    if (t.classList && t.classList.contains('dialog-close')) {
+      const d = t.closest('dialog'); if (d) d.close();
+    }
+  });
 })();

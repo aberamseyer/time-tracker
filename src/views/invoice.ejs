@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Invoice #<%= invoice.number %></title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body class="invoice-page">
+  <div class="invoice">
+    <header class="invoice-head">
+      <div class="seller"><%- invoice.seller.replace(/\n/g, '<br>') %></div>
+      <div class="invoice-title">
+        <div class="big">INVOICE</div>
+        <div class="num">Invoice # <%= invoice.number %></div>
+      </div>
+    </header>
+    <section class="invoice-meta">
+      <div class="bill-to">
+        <div class="lbl">Bill To</div>
+        <div class="name"><%= invoice.client.name %></div>
+        <div class="addr"><%- invoice.client.address.replace(/\n/g, '<br>') %></div>
+      </div>
+      <div class="meta-fields">
+        <div><span class="lbl">Date</span><span><%= invoice.date %></span></div>
+        <% if (invoice.poNumber) { %><div><span class="lbl">PO Number</span><span><%= invoice.poNumber %></span></div><% } %>
+      </div>
+    </section>
+    <table class="invoice-lines">
+      <thead><tr><th>Item</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead>
+      <tbody>
+        <% invoice.lineItems.forEach(li => { %>
+          <tr>
+            <td><div><%= li.item %></div><% if (li.sub) { %><div class="sub"><%= li.sub %></div><% } %></td>
+            <td class="num"><%= li.quantity.toFixed(2) %></td>
+            <td class="num"><%= fmtMoney(li.rateCents) %></td>
+            <td class="num"><%= fmtMoney(li.amountCents) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+      <tfoot>
+        <tr><td></td><td colspan="2">Subtotal</td><td class="num"><%= fmtMoney(invoice.subtotalCents) %></td></tr>
+        <% if (invoice.discountCents != null) { %><tr><td></td><td colspan="2">Discount (<%= invoice.discountPct %>%)</td><td class="num">-<%= fmtMoney(invoice.discountCents) %></td></tr><% } %>
+        <% if (invoice.taxCents != null) { %><tr><td></td><td colspan="2">Tax (<%= invoice.taxPct %>%)</td><td class="num"><%= fmtMoney(invoice.taxCents) %></td></tr><% } %>
+        <tr class="total"><td></td><td colspan="2">Total</td><td class="num"><%= fmtMoney(invoice.totalCents) %></td></tr>
+      </tfoot>
+    </table>
+    <% if (invoice.notes) { %>
+      <section class="invoice-notes"><div class="lbl">Notes</div><div><%- invoice.notes.replace(/\n/g, '<br>') %></div></section>
+    <% } %>
+  </div>
+  <button class="invoice-print" onclick="window.print()">Print</button>
+</body>
+</html>

@@ -100,4 +100,8 @@
     <span class="an-export-note">Exports the current view</span>
     <button>Export CSV</button>
   </form>
+  <button type="button" class="invoice-btn" <%= p.clientId ? '' : 'disabled title="Select a client to invoice"' %>
+          hx-get="/partials/invoice-form?<%= qs %>" hx-target="#invoice-dialog-body" hx-swap="innerHTML"
+          onclick="document.getElementById('invoice-dialog').showModal()">Generate invoice</button>
+  <dialog id="invoice-dialog"><div id="invoice-dialog-body"></div></dialog>
 </div>

@@ -235,3 +235,26 @@ svg.chart { width:100%; height:auto; background:var(--card); border:1px solid va
   .tabbar a.active { background:color-mix(in srgb, var(--accent) 12%, transparent); }
   .tabbar .logout { margin-top:auto; flex:0; }
 }
+
+.invoice-btn[disabled] { opacity: .5; cursor: not-allowed; }
+#invoice-dialog { border: none; border-radius: 8px; padding: 1.25rem; max-width: 32rem; width: 90%; }
+#invoice-dialog::backdrop { background: rgba(0,0,0,.4); }
+.invoice-form label { display: block; margin: .5rem 0; }
+.invoice-form input, .invoice-form textarea { width: 100%; }
+.oo-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: .5rem; margin-bottom: .35rem; }
+.invoice-form-actions { display: flex; gap: .5rem; margin-top: .75rem; }
+
+.invoice-page { background: #fff; color: #111; }
+.invoice { max-width: 48rem; margin: 2rem auto; padding: 0 1.5rem; }
+.invoice-head { display: flex; justify-content: space-between; align-items: flex-start; }
+.invoice-title .big { font-size: 2.5rem; font-weight: 700; }
+.invoice-meta { display: flex; justify-content: space-between; margin: 1.5rem 0; }
+.invoice-lines { width: 100%; border-collapse: collapse; }
+.invoice-lines th, .invoice-lines td { padding: .5rem; text-align: left; border-bottom: 1px solid #eee; }
+.invoice-lines .num { text-align: right; }
+.invoice-lines .sub { font-size: .8rem; color: #666; }
+.invoice-lines tfoot .total td { font-weight: 700; border-top: 2px solid #ccc; }
+.lbl { font-size: .8rem; color: #666; }
+.invoice-notes { margin-top: 1.5rem; }
+.invoice-print { position: fixed; top: 1rem; right: 1rem; }
+@media print { .invoice-print { display: none; } .invoice { margin: 0; } }
