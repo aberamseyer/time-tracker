@@ -7,10 +7,9 @@
   function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
   const fmtVal = report.metric === 'earnings' ? (v) => fmtMoney(v) : (v) => fmtDuration(v);
   const buckets = report.buckets, series = report.series;
-  const W = 720, H = 240, x0 = 72, x1 = 710, yT = 12, yB = 214;
-  const plotW = x1 - x0, plotH = yB - yT;
+  const W = 720, H = 240, x1 = 710, yT = 12, yB = 214;
+  const plotH = yB - yT;
   const nb = Math.max(1, buckets.length);
-  const band = plotW / nb;
   const step = Math.ceil(nb / 8);
   let max = 1;
   if (p.chart === 'bars') {
@@ -18,6 +17,12 @@
   } else {
     series.forEach(s => s.values.forEach(v => { if (v > max) max = v; }));
   }
+  // Left gutter sizes to the widest y-axis label (~6.2 units/char at font-size 11).
+  const yLabels = [0, 0.5, 1].map(f => fmtVal(Math.round(max * f)));
+  const labelChars = Math.max(...yLabels.map(s => s.length));
+  const x0 = Math.min(180, Math.max(52, Math.ceil(labelChars * 6.2) + 14));
+  const plotW = x1 - x0;
+  const band = plotW / nb;
   const yOf = (v) => yB - (v / max) * plotH;
   const seg = (name, cur, opts) => opts.map(([v, label]) =>
     `<label class="seg${cur === v ? ' on' : ''}"><input type="radio" name="${name}" value="${v}" ${cur === v ? 'checked' : ''}><span>${label}</span></label>`).join('');
@@ -64,9 +69,9 @@
     <p class="empty">No completed work in <%= rangeLabel %>.</p>
   <% } else { %>
     <svg class="chart" viewBox="0 0 <%= W %> <%= H %>" preserveAspectRatio="none" role="img">
-      <% [0, 0.5, 1].forEach(f => { const y = yB - f * plotH; %>
+      <% [0, 0.5, 1].forEach((f, li) => { const y = yB - f * plotH; %>
         <line x1="<%= x0 %>" y1="<%= y %>" x2="<%= x1 %>" y2="<%= y %>" stroke="var(--line)" stroke-width="1"/>
-        <text x="<%= x0 - 8 %>" y="<%= y + 4 %>" text-anchor="end" font-size="11" fill="var(--muted)"><%= fmtVal(Math.round(max * f)) %></text>
+        <text x="<%= x0 - 8 %>" y="<%= y + 4 %>" text-anchor="end" font-size="11" fill="var(--muted)"><%= yLabels[li] %></text>
       <% }) %>
       <% if (p.chart === 'bars') { %>
         <% buckets.forEach((d, i) => { let acc = 0; const bw = band * 0.68; const bx = x0 + i * band + (band - bw) / 2; %>
