@@ -65,7 +65,8 @@ CREATE TABLE IF NOT EXISTS settings (
   week_start INTEGER NOT NULL DEFAULT 1,
   timezone TEXT NOT NULL DEFAULT 'UTC',
   rounding_minutes INTEGER NOT NULL DEFAULT 0,
-  session_grouping TEXT NOT NULL DEFAULT 'day'
+  session_grouping TEXT NOT NULL DEFAULT 'day',
+  invoice_seq INTEGER NOT NULL DEFAULT 0
 );
 `;
 
@@ -75,6 +76,7 @@ function addColumn(db: Database.Database, table: string, col: string, def: strin
 
 export function migrate(db: Database.Database): void {
   db.exec(SCHEMA);
+  addColumn(db, 'settings', 'invoice_seq', 'INTEGER NOT NULL DEFAULT 0');
 }
 
 export function seedSettings(db: Database.Database, userId = 1): void {

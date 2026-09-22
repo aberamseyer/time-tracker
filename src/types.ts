@@ -26,7 +26,7 @@ export interface SessionRow {
 
 export interface SettingsRow {
   user_id: number; business_from: string; currency: string; week_start: number;
-  timezone: string; rounding_minutes: number; session_grouping: string;
+  timezone: string; rounding_minutes: number; session_grouping: string; invoice_seq: number;
 }
 
 export interface HydratedSession extends SessionRow { tags: TagRow[]; task: TaskRow | null; }
@@ -59,4 +59,18 @@ export interface SessionGroup {
 export interface Hub {
   handleConnection(ws: WebSocket, userId: number): void;
   notify(userId: number, type?: string): void;
+}
+
+export interface InvoiceLineItem {
+  item: string; sub?: string;
+  quantity: number; rateCents: number; amountCents: number;
+}
+export interface Invoice {
+  number: number; date: string; poNumber?: string; notes?: string;
+  seller: string; client: ClientRow;
+  lineItems: InvoiceLineItem[];
+  subtotalCents: number;
+  discountPct?: number; discountCents?: number;
+  taxPct?: number; taxCents?: number;
+  totalCents: number;
 }

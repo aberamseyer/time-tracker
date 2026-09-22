@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from '../src/db.js';
-import { getSettings, updateSettings } from '../src/settings.js';
+import { getSettings, updateSettings, nextInvoiceNumber, recordInvoiceNumber } from '../src/settings.js';
 
 test('defaults then update rounding', () => {
   const db = openDb(':memory:');
@@ -34,4 +34,13 @@ test('biweek is a valid session grouping', () => {
   const db = openDb(':memory:');
   updateSettings(db, 1, { sessionGrouping: 'biweek' });
   assert.equal(getSettings(db, 1).session_grouping, 'biweek');
+});
+
+test('invoice number increments and records max', () => {
+  const db = openDb();
+  assert.equal(nextInvoiceNumber(db, 1), 1);
+  recordInvoiceNumber(db, 1, 5);
+  assert.equal(nextInvoiceNumber(db, 1), 6);
+  recordInvoiceNumber(db, 1, 3); // lower ignored
+  assert.equal(nextInvoiceNumber(db, 1), 6);
 });

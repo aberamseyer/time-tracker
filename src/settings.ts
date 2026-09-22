@@ -5,8 +5,8 @@ const ROUNDING: Set<number> = new Set([0, 6, 10, 15, 30, 60]);
 const GROUPING: Set<string> = new Set(['day', 'week', 'biweek', 'month', 'quarter']);
 
 export function getSettings(db: Database.Database, userId: number): SettingsRow {
-  return db.prepare('SELECT * FROM settings WHERE user_id = ?').get(userId) as SettingsRow ?? { 
-    user_id: userId, business_from: '', currency: 'USD', week_start: 1, timezone: 'UTC', rounding_minutes: 0, session_grouping: 'day' 
+  return db.prepare('SELECT * FROM settings WHERE user_id = ?').get(userId) as SettingsRow ?? {
+    user_id: userId, business_from: '', currency: 'USD', week_start: 1, timezone: 'UTC', rounding_minutes: 0, session_grouping: 'day', invoice_seq: 0
   };
 }
 
@@ -33,4 +33,12 @@ export function updateSettings(
   }
   if (!sets.length) return;
   db.prepare(`UPDATE settings SET ${sets.join(', ')} WHERE user_id = ?`).run(...vals, userId);
+}
+
+export function nextInvoiceNumber(db: Database.Database, userId: number): number {
+  return (getSettings(db, userId).invoice_seq ?? 0) + 1;
+}
+
+export function recordInvoiceNumber(db: Database.Database, userId: number, n: number): void {
+  db.prepare('UPDATE settings SET invoice_seq = MAX(invoice_seq, ?) WHERE user_id = ?').run(n, userId);
 }
