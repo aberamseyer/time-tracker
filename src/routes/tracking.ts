@@ -18,9 +18,9 @@ const PAGE = 1;
 export function fmtDuration(ms: number): string {
   const totalMin = Math.round(ms / MS_PER_MINUTE);
   const h = Math.floor(totalMin / 60), m = totalMin % 60;
-  if (h && m) return `${h} h ${m} min`;
+  if (h && m) return `${h} h ${m} m`;
   if (h) return `${h} h`;
-  return `${m} min`;
+  return `${m} m`;
 }
 
 export function fmtMoney(cents: number): string {
