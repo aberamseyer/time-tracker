@@ -252,7 +252,7 @@ svg.chart { width:100%; height:auto; background:var(--card); border:1px solid va
 .meta-fields > div { display: flex; justify-content: space-between; gap: 1.5rem; }
 .invoice-lines { width: 100%; border-collapse: collapse; }
 .invoice-lines th, .invoice-lines td { padding: .5rem; text-align: left; border-bottom: 1px solid #eee; }
-.invoice-lines thead th:not(:first-child) { text-align: center; }
+.invoice-lines thead th:not(:first-child) { text-align: right; }
 .invoice-lines .num { text-align: right; }
 .invoice-lines .sub { font-size: .8rem; color: #666; }
 .invoice-lines tfoot .total td { font-weight: 700; border-top: 2px solid #ccc; }
