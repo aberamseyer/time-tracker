@@ -9,7 +9,7 @@
 <body class="invoice-page">
   <div class="invoice">
     <header class="invoice-head">
-      <div class="seller"><%- invoice.seller.replace(/\n/g, '<br>') %></div>
+      <div class="seller"><%- escapeHtml(invoice.seller).replace(/\n/g, '<br>') %></div>
       <div class="invoice-title">
         <div class="big">INVOICE</div>
         <div class="num">Invoice # <%= invoice.number %></div>
@@ -19,7 +19,7 @@
       <div class="bill-to">
         <div class="lbl">Bill To</div>
         <div class="name"><%= invoice.client.name %></div>
-        <div class="addr"><%- invoice.client.address.replace(/\n/g, '<br>') %></div>
+        <div class="addr"><%- escapeHtml(invoice.client.address).replace(/\n/g, '<br>') %></div>
       </div>
       <div class="meta-fields">
         <div><span class="lbl">Date</span><span><%= invoice.date %></span></div>
@@ -46,7 +46,7 @@
       </tfoot>
     </table>
     <% if (invoice.notes) { %>
-      <section class="invoice-notes"><div class="lbl">Notes</div><div><%- invoice.notes.replace(/\n/g, '<br>') %></div></section>
+      <section class="invoice-notes"><div class="lbl">Notes</div><div><%- escapeHtml(invoice.notes).replace(/\n/g, '<br>') %></div></section>
     <% } %>
   </div>
   <button class="invoice-print" onclick="window.print()">Print</button>

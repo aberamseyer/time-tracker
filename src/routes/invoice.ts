@@ -4,7 +4,7 @@ import { buildInvoice } from '../invoice.js';
 import { getSettings, nextInvoiceNumber, recordInvoiceNumber } from '../settings.js';
 import { getClient } from '../catalog.js';
 import { periodOf } from '../analytics.js';
-import { fmtMoney } from './tracking.js';
+import { fmtMoney, escapeHtml } from './tracking.js';
 import type { Hub } from '../types.js';
 
 const TYPES = ['week', 'biweek', 'month', 'quarter'];
@@ -63,7 +63,7 @@ export function invoiceRouter(db: Database.Database, _hub: Hub): Router {
       oneOffs, discountPct: num(b.discountPct), taxPct: num(b.taxPct),
     });
     recordInvoiceNumber(db, userId, number);
-    res.render('invoice', { invoice, fmtMoney });
+    res.render('invoice', { invoice, fmtMoney, escapeHtml });
   });
 
   return r;
