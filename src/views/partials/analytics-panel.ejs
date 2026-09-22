@@ -28,7 +28,7 @@
     <div class="segmented"><%- seg('chart', p.chart, [['bars','Bars'],['lines','Lines']]) %></div>
     <div class="segmented"><%- seg('metric', p.metric, [['time','Working time'],['earnings','Earnings']]) %></div>
     <div class="segmented"><%- seg('by', p.by, [['task','Tasks'],['tag','Tags']]) %></div>
-    <div class="segmented"><%- seg('type', p.type, [['week','Week'],['month','Month'],['quarter','Quarter']]) %></div>
+    <div class="segmented"><%- seg('type', p.type, [['week','Week'],['biweek','Biweek'],['month','Month'],['quarter','Quarter']]) %></div>
     <select name="clientId">
       <option value="">All clients</option>
       <% clients.forEach(c => { %><option value="<%= c.id %>" <%= p.clientId === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>

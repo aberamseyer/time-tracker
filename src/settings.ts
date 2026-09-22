@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3';
 import type { SettingsRow } from './types.js';
 
 const ROUNDING: Set<number> = new Set([0, 6, 10, 15, 30, 60]);
-const GROUPING: Set<string> = new Set(['day', 'week', 'month', 'quarter']);
+const GROUPING: Set<string> = new Set(['day', 'week', 'biweek', 'month', 'quarter']);
 
 export function getSettings(db: Database.Database, userId: number): SettingsRow {
   return db.prepare('SELECT * FROM settings WHERE user_id = ?').get(userId) as SettingsRow ?? { 

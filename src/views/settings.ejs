@@ -3,7 +3,7 @@
   const seg = opts.map(([v,label]) =>
     `<label class="seg${settings.rounding_minutes===v?' on':''}"><input type="radio" name="roundingMinutes" value="${v}" ${settings.rounding_minutes===v?'checked':''}><span>${label}</span></label>`
   ).join('');
-  const groupOpts = [['day','Daily'],['week','Weekly'],['month','Monthly'],['quarter','Quarterly']];
+  const groupOpts = [['day','Daily'],['week','Weekly'],['biweek','Biweekly'],['month','Monthly'],['quarter','Quarterly']];
   const groupSeg = groupOpts.map(([v,label]) =>
     `<label class="seg${settings.session_grouping===v?' on':''}"><input type="radio" name="sessionGrouping" value="${v}" ${settings.session_grouping===v?'checked':''}><span>${label}</span></label>`
   ).join('');

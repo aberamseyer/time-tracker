@@ -9,7 +9,7 @@ import { fmtDuration, fmtMoney } from './tracking.js';
 import type { SessionFilter } from '../types.js';
 import { MS_PER_DAY } from '../constants.js';
 
-const TYPES = ['week', 'month', 'quarter'];
+const TYPES = ['week', 'biweek', 'month', 'quarter'];
 
 function idsFrom(v: unknown): number[] {
   return (Array.isArray(v) ? v : v != null && v !== '' ? [v] : []).map(Number).filter(n => !Number.isNaN(n));

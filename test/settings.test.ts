@@ -29,3 +29,9 @@ test('rejects invalid grouping and week start', () => {
   assert.throws(() => updateSettings(db, 1, { sessionGrouping: 'yearly' }), /invalid grouping/);
   assert.throws(() => updateSettings(db, 1, { weekStart: 9 }), /invalid week start/);
 });
+
+test('biweek is a valid session grouping', () => {
+  const db = openDb(':memory:');
+  updateSettings(db, 1, { sessionGrouping: 'biweek' });
+  assert.equal(getSettings(db, 1).session_grouping, 'biweek');
+});
