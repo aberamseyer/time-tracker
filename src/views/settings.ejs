@@ -1,5 +1,5 @@
 <%
-  const opts = [[0,'Off'],[15,'15 min'],[30,'30 min'],[60,'1 hour']];
+  const opts = [[0,'Off'],[6,'6 min'],[10,'10 min'],[15,'15 min'],[30,'30 min'],[60,'1 hour']];
   const seg = opts.map(([v,label]) =>
     `<label class="seg${settings.rounding_minutes===v?' on':''}"><input type="radio" name="roundingMinutes" value="${v}" ${settings.rounding_minutes===v?'checked':''}><span>${label}</span></label>`
   ).join('');
