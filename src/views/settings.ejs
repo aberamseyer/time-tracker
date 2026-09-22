@@ -11,6 +11,7 @@
   const weekSel = days.map((label,v) =>
     `<option value="${v}" ${settings.week_start===v?'selected':''}>${label}</option>`
   ).join('');
+  const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const tagsBlock = include('partials/settings-tags', { tags, newTagColor });
   const body = `
     <h1>Settings</h1>
@@ -19,6 +20,7 @@
       <fieldset><legend>Round up working time to the next…</legend><div class="segmented">${seg}</div></fieldset>
       <fieldset><legend>Group sessions on the Time page by…</legend><div class="segmented">${groupSeg}</div></fieldset>
       <fieldset><legend>First day of the week</legend><select name="weekStart">${weekSel}</select></fieldset>
+      <fieldset><legend>Invoice "From" default</legend><textarea name="businessFrom" rows="5" placeholder="Your business name, address, email, phone">${esc(settings.business_from)}</textarea></fieldset>
       <button type="submit">Save</button>
     </form>
     <h2>Tags</h2>

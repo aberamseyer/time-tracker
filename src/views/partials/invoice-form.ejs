@@ -8,6 +8,7 @@
   <% view.taskIds.forEach(id => { %><input type="hidden" name="taskId" value="<%= id %>"><% }) %>
   <% view.tagIds.forEach(id => { %><input type="hidden" name="tagId" value="<%= id %>"><% }) %>
   <h2>Invoice — <%= client.name %></h2>
+  <label>From <textarea name="from" rows="4"><%= businessFrom %></textarea></label>
   <label>Invoice # <input name="number" type="number" value="<%= number %>"></label>
   <label>Date <input name="date" type="date" value="<%= today %>"></label>
   <label>PO Number <input name="poNumber" type="text"></label>

@@ -14,9 +14,11 @@ export function getSettings(db: Database.Database, userId: number): SettingsRow 
 export function updateSettings(
   db: Database.Database,
   userId: number,
-  { roundingMinutes, sessionGrouping, weekStart }: { roundingMinutes?: unknown; sessionGrouping?: unknown; weekStart?: unknown } = {}
+  { roundingMinutes, sessionGrouping, weekStart, businessFrom }:
+    { roundingMinutes?: unknown; sessionGrouping?: unknown; weekStart?: unknown; businessFrom?: unknown } = {}
 ): void {
   const sets: string[] = [], vals: (string | number)[] = [];
+  if (businessFrom !== undefined) { sets.push('business_from = ?'); vals.push(String(businessFrom)); }
   if (roundingMinutes !== undefined) {
     const r = Number(roundingMinutes);
     if (!ROUNDING.has(r)) throw new Error('invalid rounding');

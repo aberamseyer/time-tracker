@@ -44,3 +44,9 @@ test('invoice number increments and records max', () => {
   recordInvoiceNumber(db, 1, 3); // lower ignored
   assert.equal(nextInvoiceNumber(db, 1), 6);
 });
+
+test('stores business_from default', () => {
+  const db = openDb(':memory:');
+  updateSettings(db, 1, { businessFrom: 'Acme LLC\n123 Main St' });
+  assert.equal(getSettings(db, 1).business_from, 'Acme LLC\n123 Main St');
+});

@@ -30,6 +30,7 @@ export function settingsRouter(db: Database.Database, hub: Hub): Router {
         roundingMinutes: body.roundingMinutes,
         sessionGrouping: body.sessionGrouping,
         weekStart: body.weekStart,
+        businessFrom: body.businessFrom,
       });
       hub.notify(userId, 'changed');
       res.redirect('/settings');
