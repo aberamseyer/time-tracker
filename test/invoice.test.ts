@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { sessionLineItem, oneOffLineItem, computeTotals } from '../src/invoice.js';
+import { sessionLineItem, oneOffLineItem, computeTotals, buildInvoice } from '../src/invoice.js';
+import { openDb } from '../src/db.js';
+import { createClient, createTask, getClient } from '../src/catalog.js';
+import { createSession } from '../src/sessions.js';
 import type { DecoratedSession } from '../src/types.js';
 
 const HOUR = 3600000;
@@ -50,4 +53,43 @@ test('blank discount and tax produce no rows', () => {
   assert.equal(t.discountCents, undefined);
   assert.equal(t.taxCents, undefined);
   assert.equal(t.totalCents, 8000);
+});
+
+test('buildInvoice: one line item per completed session in range, excludes outside range', () => {
+  const db = openDb(':memory:');
+  const userId = 1;
+  const clientId = createClient(db, { name: 'Acme' }, userId);
+  const taskId = createTask(db, { name: 'Consulting', hourlyRateCents: 6000, clientId }, userId);
+
+  const from = Date.UTC(2026, 8, 10);
+  const to = Date.UTC(2026, 8, 16);
+
+  // inside range: 1 hour and 2 hours
+  createSession(db, {
+    taskId, startUtc: Date.UTC(2026, 8, 12, 9), endUtc: Date.UTC(2026, 8, 12, 10), userId,
+  });
+  createSession(db, {
+    taskId, startUtc: Date.UTC(2026, 8, 14, 9), endUtc: Date.UTC(2026, 8, 14, 11), userId,
+  });
+  // outside range: well before `from`
+  createSession(db, {
+    taskId, startUtc: Date.UTC(2026, 7, 1, 9), endUtc: Date.UTC(2026, 7, 1, 10), userId,
+  });
+
+  const client = getClient(db, clientId, userId)!;
+  const invoice = buildInvoice(db, userId, {
+    number: 1, date: '2026-09-22', seller: 'Me', client,
+    from, to, clientId, rounding: 0,
+  });
+
+  assert.equal(invoice.lineItems.length, 2);
+  for (const li of invoice.lineItems) {
+    assert.equal(li.item, 'Consulting');
+    assert.equal(li.rateCents, 6000);
+  }
+  const quantities = invoice.lineItems.map(li => li.quantity).sort((a, b) => a - b);
+  assert.deepEqual(quantities, [1, 2]);
+  const expectedSubtotal = invoice.lineItems.reduce((n, li) => n + li.amountCents, 0);
+  assert.equal(invoice.subtotalCents, expectedSubtotal);
+  assert.equal(invoice.subtotalCents, 6000 + 12000); // 1h + 2h @ $60/h
 });
