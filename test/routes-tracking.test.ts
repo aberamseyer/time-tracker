@@ -92,11 +92,13 @@ test('timer start-time clamps to [local midnight, now] on real instants', async 
   await agent.post('/timer/start').type('form').send({ tz: '0' });
   const id = getActiveSession(db, 1)!.id;
   const now = Date.now();
-  await agent.post('/timer/start-time').type('form').send({ start: String(now - 2 * MS_PER_HOUR), tz: '0' });
-  assert.equal(getSession(db, id, 1)!.start_utc, now - 2 * MS_PER_HOUR);
+  const midnight = now - (now % MS_PER_DAY);
+  // Midpoint stays within today regardless of time of day.
+  const inRange = midnight + Math.floor((now - midnight) / 2);
+  await agent.post('/timer/start-time').type('form').send({ start: String(inRange), tz: '0' });
+  assert.equal(getSession(db, id, 1)!.start_utc, inRange);
   await agent.post('/timer/start-time').type('form').send({ start: String(now + MS_PER_HOUR), tz: '0' });
   assert.ok(getSession(db, id, 1)!.start_utc! <= Date.now() + 1000);
-  const midnight = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
   await agent.post('/timer/start-time').type('form').send({ start: String(midnight - 5 * MS_PER_HOUR), tz: '0' });
   assert.ok(getSession(db, id, 1)!.start_utc! >= midnight);
 });

@@ -249,6 +249,8 @@ svg.chart { width:100%; height:auto; background:var(--card); border:1px solid va
 .invoice-head { display: flex; justify-content: space-between; align-items: flex-start; }
 .invoice-title .big { font-size: 2.5rem; font-weight: 700; }
 .invoice-meta { display: flex; justify-content: space-between; margin: 1.5rem 0; }
+.seller .name, .bill-to .name { font-size: 1.1rem; font-weight: 600; }
+.seller .addr, .bill-to .addr { font-size: .85rem; color: #444; }
 .meta-fields > div { display: flex; justify-content: space-between; gap: 1.5rem; }
 .invoice-lines { width: 100%; border-collapse: collapse; }
 .invoice-lines th, .invoice-lines td { padding: .5rem; text-align: left; border-bottom: 1px solid #eee; }

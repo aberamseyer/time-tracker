@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { sessionLineItem, oneOffLineItem, computeTotals, buildInvoice } from '../src/invoice.js';
+import { sessionLineItem, oneOffLineItem, computeTotals, buildInvoice, splitParty } from '../src/invoice.js';
 import { openDb } from '../src/db.js';
 import { createClient, createTask, getClient } from '../src/catalog.js';
 import { createSession } from '../src/sessions.js';
@@ -78,7 +78,7 @@ test('buildInvoice: one line item per completed session in range, excludes outsi
 
   const client = getClient(db, clientId, userId)!;
   const invoice = buildInvoice(db, userId, {
-    number: 1, date: '2026-09-22', seller: 'Me', client,
+    number: 1, date: '2026-09-22', seller: { name: 'Me', address: '' }, client,
     from, to, clientId, rounding: 0,
   });
 
@@ -92,4 +92,9 @@ test('buildInvoice: one line item per completed session in range, excludes outsi
   const expectedSubtotal = invoice.lineItems.reduce((n, li) => n + li.amountCents, 0);
   assert.equal(invoice.subtotalCents, expectedSubtotal);
   assert.equal(invoice.subtotalCents, 6000 + 12000); // 1h + 2h @ $60/h
+});
+
+test('splitParty: first line is name, rest is address', () => {
+  assert.deepEqual(splitParty('Me LLC\r\n1 Road\nTown'), { name: 'Me LLC', address: '1 Road\nTown' });
+  assert.deepEqual(splitParty(''), { name: '', address: '' });
 });

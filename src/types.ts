@@ -65,9 +65,10 @@ export interface InvoiceLineItem {
   item: string; sub?: string;
   quantity: number; rateCents: number; amountCents: number;
 }
+export interface InvoiceParty { name: string; address: string; }
 export interface Invoice {
   number: number; date: string; poNumber?: string; notes?: string;
-  seller: string; client: ClientRow;
+  seller: InvoiceParty; client: ClientRow;
   lineItems: InvoiceLineItem[];
   subtotalCents: number;
   discountPct?: number; discountCents?: number;

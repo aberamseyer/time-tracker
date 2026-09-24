@@ -9,7 +9,10 @@
 <body class="invoice-page">
   <div class="invoice">
     <header class="invoice-head">
-      <div class="seller"><%- escapeHtml(invoice.seller).replace(/\n/g, '<br>') %></div>
+      <div class="seller">
+        <div class="name"><%= invoice.seller.name %></div>
+        <div class="addr"><%- escapeHtml(invoice.seller.address).replace(/\n/g, '<br>') %></div>
+      </div>
       <div class="invoice-title">
         <div class="big">INVOICE</div>
         <div class="num">Invoice # <%= invoice.number %></div>

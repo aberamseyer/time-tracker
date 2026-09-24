@@ -3,10 +3,16 @@ import { listSessions, decorateSession } from './sessions.js';
 import { effectiveRateCents } from './catalog.js';
 import { dayStartUTC } from './analytics.js';
 import { MS_PER_HOUR, MS_PER_DAY } from './constants.js';
-import type { DecoratedSession, InvoiceLineItem, Invoice, ClientRow, SessionFilter } from './types.js';
+import type { DecoratedSession, InvoiceLineItem, Invoice, InvoiceParty, ClientRow, SessionFilter } from './types.js';
 
 function dateLabel(ms: number): string {
   return new Date(ms).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// First line is the name; remaining lines are the address.
+export function splitParty(text: string): InvoiceParty {
+  const [name = '', ...rest] = text.split(/\r?\n/);
+  return { name: name.trim(), address: rest.join('\n').trim() };
 }
 
 export function sessionLineItem(s: DecoratedSession, rateCents: number): InvoiceLineItem {
@@ -59,7 +65,7 @@ export function buildInvoice(
   db: Database.Database, userId: number,
   opts: {
     number: number; date: string; poNumber?: string; notes?: string;
-    seller: string; client: ClientRow;
+    seller: InvoiceParty; client: ClientRow;
     from: number; to: number; clientId: number; taskIds?: number[]; tagIds?: number[];
     rounding: number;
     oneOffs?: { name: string; rateCents: number; quantity: number }[];
